@@ -2,33 +2,34 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
-from sqlalchemy import func, extract, desc
+from sqlalchemy import func, extract, desc, text
 from dotenv import load_dotenv
 import os, enum, pandas as pd, numpy as np, io, csv, re
 
 load_dotenv()
 
+DB_USER = os.getenv('DB_USER')
+DB_PASS = os.getenv('DB_PASS')
+DB_NAME = os.getenv('DB_NAME')
+TEAM_LEAD_PASS = os.getenv('TEAM_LEAD_PASS')
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 CORS(app)
-
-DB_USER = 'mflanagan' 
-DB_PASS = 'admin'
-DB_NAME = 'billing-test-AH_AZ'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASS}@127.0.0.1:3306/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-class SystemSettings(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    setting_key = db.Column(db.String(50), unique=True)
-    setting_value = db.Column(db.String(255))
 
 def get_current_post_month():
     setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
     return setting.setting_value if setting  else "2026-05-01"
+
+@app.context_processor
+def inject_post_month():
+    return {'current_post_month': get_current_post_month()}
 
 def apply_search(query, model, search_query):
     if not search_query:
@@ -248,6 +249,41 @@ def imports():
 def leadership_tools():
     return render_template('leadership_tools.html')
 
+@app.route('/run_monthly_reset', methods=['POST'])
+def run_monthly_reset():
+    data = request.get_json()
+    new_date = data.get('date')
+    password = data.get('password')
+
+    if password != TEAM_LEAD_PASS:
+        return jsonify({"success": False, "message": "Incorrect password."}), 403
+    
+    try:
+        setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
+        if not setting:
+            setting = SystemSettings(setting_key='current_post_month')
+            db.session.add(setting)
+        setting.setting_value = new_date
+
+        sql = text("""
+                   INSERT INTO MonthlyData (resident_id, rollout, action_note, post_month, status)
+                   SELECT Resident.resident_id, 0, 0, :post_month, 'New'
+                   FROM Resident
+                   WHERE NOT EXISTS (
+                       SELECT 1 FROM MonthlyData
+                       WHERE MonthlyData.resident_id = Resident.resident_id AND MonthlyData.post_month = :post_month
+                   )
+                   """)
+        
+        db.session.execute(sql, {"post_month": new_date})
+        db.session.commit()
+
+        return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route('/table_view', methods=['GET','POST'])
 def table_view():
     table_map = {
@@ -276,6 +312,12 @@ def table_view():
                            table_names=table_map.keys())
 
 # Tables
+class SystemSettings(db.Model):
+    __tablename__ = 'SystemSettings'
+    id = db.Column(db.Integer, primary_key=True)
+    setting_key = db.Column(db.String(50), unique=True)
+    setting_value = db.Column(db.String(255))
+
 class ManagementCompanies(db.Model):
     __tablename__ = 'ManagementCompanies'
     id = db.Column(db.Integer, primary_key=True)
