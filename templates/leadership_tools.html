@@ -7,8 +7,50 @@
 <h2>Leadership Tools</h2>
 <p>Placeholder for leadership tools content.</p>
 
+<div>
+    <details>
+        <summary><strong>Monthly Reset</strong></summary>
+        <p>This will update the current post month and reset the site for a new month
+        <br><small>**Updates PM date setting, Adds new MonthlyData line for each home</small></p>
+        <div>
+            <div>
+                <label>New Post Month:</label><br>
+                <input type="date" id="new-month-date">
+            </div>
+            <div>
+                <label>Admin Password:</label><br>
+                <input type="password" id="admin-password" placeholder="Enter Admin Key">
+            </div>
+            <button onclick="triggerReset()">Trigger Monthly Reset</button>
+        </div>
+    </details>
+</div>
 
-<button onclick="alert('This is a placeholder for a leadership tool!')">Click Me</button>
 
+
+<script>
+function triggerReset() {
+    const date = document.getElementById('new-month-date').value;
+    const password = document.getElementById('admin-password').value;
+
+    if (!date || !password) {
+        alert("Please enter new Post Month as well as the Admin Password.");
+        return;
+    }
+    if (!confirm("WARNING: This action will reset the site for a new month. Are you sure you want to proceed?"))
+        return;
+
+        fetch('/run_monthly_reset', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ date: date, password: password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) location.reload();
+    });
+}
+</script>
 {% endblock %}
 </html>

@@ -127,3 +127,7 @@ NOTES:
                              -Python - google oauth to import 
                              -acceptance!
                              -dont send front end until auth
+
+    MONTHLY Reset 
+        -need iF statement for Current/Previous Rollouts, Never Billing, etc
+        -need logic to keep the previous months action_note data
