@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+{% extends "base.html" %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message flash-{{ category }}">
+            {{ message }}
+            <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+            </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+<h1>Bulk Import Data</h1>
+<p>Upload a CSV file to import new data</p>
+
+<div class="import-sections">
+
+    <details name="import">
+        <summary><strong>1. Add Team Members</strong></summary>
+        <div style="padding: 10px; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Team Member">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/TeamMember_CSV_TEMPLATE.csv') }}" 
+                    download="TeamMember_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit" style="margin-top: 5px;">Import Team Members</button>
+            </form>
+    </details>
+
+    <details name="import">
+        <summary><strong>2. Add Management Companies</strong></summary>
+        <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Management Company">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/MgmtCo_CSV_TEMPLATE.csv') }}" 
+                    download="ManagementCompany_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit">Import Management Companies</button>
+            </form>
+    </details>
+
+    <details name="import">
+        <summary><strong>3. Add Market Rules</strong></summary>
+        <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Market Rules">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/MarketRules_CSV_TEMPLATE.csv') }}" 
+                    download="MarketRules_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit">Import Market Rules</button>
+            </form>
+    </details>
+
+    <details name="import">
+        <summary><strong>4. Add Leases</strong></summary>
+        <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Leases">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/LeaseID_CSV_TEMPLATE.csv') }}" 
+                    download="LeaseID_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit">Import Leases</button>
+            </form>
+    </details>
+
+    <details name="import">
+        <summary><strong>5. Add Homes</strong></summary>
+        <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Home">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/Home_CSV_TEMPLATE.csv') }}" 
+                    download="Home_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit">Import Homes</button>
+            </form>
+    </details>
+
+    <details name="import">
+        <summary><strong>6. Add Residents</strong></summary>
+        <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
+            <form action="/imports" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="target_table" value="Resident">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/Resident_CSV_TEMPLATE.csv') }}" 
+                    download="NewResident_Template.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx">
+                <button type="submit">Import Residents</button>
+            </form>
+    </details>
+
+</form>
+{% endblock %}

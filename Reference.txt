@@ -1,0 +1,129 @@
+GET SITE RUNNING:
+    New powershell - .\cloud-sql-proxy.exe brilliant-rhino-489917-j7:us-central1:free-trial-first-project
+    New powershell - py app.py
+
+Relationships
+    ManagmenetCompanies
+        markets = db.relationship('MarketRules', backref='management_company', lazy=True)
+        homes = db.relationship('Home', backref='management_company', lazy=True)
+    MarketRules
+        none - only references MgmtCo
+    TeamRegister
+        manager = db.relationship('TeamRegister', remote_side=[name], backref='subordinates')
+    Home
+        bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
+        bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
+        qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
+        residents = db.relationship('Resident', backref='home', lazy=True)
+    Leases
+        residents = db.relationship('Resident', backref='lease', lazy=True)
+    Resident
+        monthly_info = db.relationship('MonthlyData', backref='resident', lazy=True)
+    MonthlyData
+        utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
+
+Tables
+    ManagementCompanies
+        mgmt_co
+        mgmt_nickname
+        mgmt_abbreviation
+        id
+    MarketRules
+        market_rules_id
+        mgmt_co_id
+        market_name
+        market_rules
+    TeamRegister
+        employee_id
+        name
+        nickname
+        email
+        role
+        manager_name
+    Home
+        home_id
+        prop_code
+        reo_id
+        address
+        city
+        state
+        sq_ft
+        bedrooms
+        multi_unit_num
+        market
+        market_rules_id
+        mgmt_co_id
+        acquired_from
+        bc_assignee
+        bm_assignee
+        qc_assignee
+    Leases
+        lease_id
+        billing_lease_id
+        states
+        intro
+        retirement
+        renewal
+        required_utilities
+        switchable_utilities
+        vacant_utilities
+        service_fee
+        renewal_fee
+        setup_fee
+        move_out_fee
+        vacant_service_fee
+        grace_period
+        other_fees
+        lease_notes
+    Resident
+        resident_id
+        home_id
+        lease_id
+        resident_code
+        move_in
+        renewal
+        admin_notes
+    MonthlyData
+        monthly_id
+        resident_id
+        status
+        rollout
+        billing_note
+        action_note
+        post_month
+    Utilities
+        utilities_id
+        monthly_id
+        water
+        sewer
+        trash
+        electric
+        gas
+        water2
+        sewer2
+        trash5
+        electric2
+        gas2
+        vacant_electric
+        vacant_gas
+
+
+Features Needed
+    - Monthly Reset
+        -reset homes(really just creating a new table row in MonthlyData and probably Utilities)
+        -add default PM for all other screens
+
+
+NOTES: 
+    IMPORTS - need to make sure various id's wont cause issues
+
+    Live Service - Google Cloud Run - docker file will be needed
+
+    Logins - google auth login? google sign in>
+        Security Principles: -don't validate user based on email
+                             -keep user session going
+                             -research jwt(jot-data package holding auth token) - auth package
+                             -validate jwt - decrypt using public google client id(?)
+                             -Python - google oauth to import 
+                             -acceptance!
+                             -dont send front end until auth

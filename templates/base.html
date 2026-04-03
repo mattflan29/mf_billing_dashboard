@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="static/visuals.css">
+
+<head>
+    <title>Billing Dashboard</title>
+</head>
+
+<header>
+    <img src="static/ConserviceLogo.png" alt="Conservice Logo" style="float: left;">
+    <h1 style="text-align: right;">Billing Dashboard</h1>
+    
+    <nav class="navbar">
+        <a href="/">Home</a>
+        <a href="/tool1">BC View</a>
+        <a href="/billing_summary">Billing Summary</a>
+        <a href="/imports">Imports</a>
+        <a href="/leadership_tools">Leadership Tools</a>
+        <a href="/table_view">Table View</a>
+
+        <div>
+            <input type="textarea" id = "global-search"
+                placeholder="Search Prop Code"
+                value="{{ request.args.get('q', '')}}"
+                oninput="debouncedSearch(this.value)">
+
+                
+            {% if request.args.get('q') %}
+            <span onclick="clearSearch()"
+                  style="position: absolute; right: 50px; cursor: pointer; color: #f70909; font-weight: bold; font-size: 18px;"
+                  title="Clear Search">&times;</span>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+    <script src="{{ url_for('static', filename='js/table-logic.js') }}" defer></script>
+
+    {% block scripts %}{% endblock %}
+
+    <footer>Sincerely - MattieBoi</footer>
+</html>

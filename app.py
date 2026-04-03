@@ -1,0 +1,405 @@
+from flask import Flask, jsonify, request, render_template, redirect, url_for, flash, make_response
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from datetime import datetime
+from sqlalchemy import func, extract, desc
+from dotenv import load_dotenv
+import os, enum, pandas as pd, numpy as np, io, csv, re
+
+load_dotenv()
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+CORS(app)
+
+DB_USER = 'mflanagan' 
+DB_PASS = 'admin'
+DB_NAME = 'billing-test-AH_AZ'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASS}@127.0.0.1:3306/{DB_NAME}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+current_Post_Month = "2026-05-01"
+
+db = SQLAlchemy(app)
+
+def apply_search(query, model, search_query):
+    if not search_query:
+        return query
+    
+    if not hasattr(model, 'prop_code'):
+        return query
+    
+    code_list = re.split(r'[,\t\n]+', search_query.strip())
+    code_list = [c.strip() for c in code_list if c.strip()]
+
+    if len(code_list) > 1:
+        return query.filter(model.prop_code.in_(code_list))
+    if len(code_list) == 1:
+        return query.filter(model.prop_code.ilike(f"%{code_list[0]}%"))
+    return query
+
+def clean_val(val):
+    if pd.isna(val):
+        return None
+    return val
+
+@app.route('/')
+def home_page():
+    return render_template('home.html')
+
+@app.route('/tool1')
+def tool1():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '')
+
+    market_val = request.args.get('market_filter')
+    mgmt_val = request.args.get('mgmt_filter')
+    bc_val = request.args.get('bc_filter')
+
+    query = Home.query
+    query = apply_search(query, Home, search_query)
+    if bc_val:
+        query = query.filter(Home.bc_assignee == bc_val)
+    if market_val:
+        query = query.filter(Home.market == market_val)
+    if mgmt_val:
+        query = query.filter(Home.mgmt_co_id == mgmt_val)
+
+    pagination = query.paginate(page=page, per_page=2000, error_out=False)
+    homes = pagination.items
+
+    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    companies = ManagementCompanies.query.all()
+    bcs = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
+
+    return render_template('tool1.html', 
+                           homes=homes, 
+                           pagination=pagination,
+                           markets=markets, 
+                           companies=companies,
+                           bcs=bcs,
+                           active_market=market_val,
+                           active_mgmt=mgmt_val,
+                           active_bc=bc_val)
+
+@app.route('/billing_summary')
+def billing_summary():
+    available_dates = db.session.query(MonthlyData.post_month).distinct().order_by(desc(MonthlyData.post_month)).all()
+    date_list = [d[0] for d in available_dates if d[0] is not None]
+    selected_date_str = request.args.get('post_month')
+
+    if selected_date_str:
+        selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    elif date_list:
+        selected_date = date_list[0]
+    else:
+        selected_date = None
+
+    details = []
+    status_counts = []
+    if selected_date:
+        details = MonthlyData.query.filter(func.date(MonthlyData.post_month) == selected_date).all()
+        status_counts = db.session.query(
+            MonthlyData.status, func.count(MonthlyData.monthly_id)
+            ).filter_by(post_month=selected_date).group_by(MonthlyData.status).all()
+
+    return render_template('billing_summary.html', date_list=date_list, selected_date=selected_date, details=details, status_counts=status_counts)
+
+@app.route('/imports', methods=['GET','POST'])
+def imports():
+    if request.method == 'POST':
+        file = request.files.get('file')
+        table_choice = request.form.get('target_table')
+
+        if not file:
+            flash("No file selected!", "failure")
+            return redirect(url_for('imports'))
+        
+        df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
+        df = df.astype(object).replace({np.nan: None})
+
+        if table_choice == "Home":
+            mgmtco_lookup = {mc.mgmt_co: mc.id for mc in ManagementCompanies.query.all()}
+            marketrule_lookup = {mr.market_name: mr.market_rules_id for mr in MarketRules.query.all()}
+            bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()}
+            bm_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'Billing Manager').all()}
+            qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'QC Specialist').all()}
+            for index, row in df.iterrows():
+                market_rules_id = marketrule_lookup.get(row.get('Market Rules'))
+                mgmtco_id = mgmtco_lookup.get(row.get('Management Company'))
+                bc_assignee = bc_lookup.get(row.get('BC Nickname'))
+                bm_assignee = bm_lookup.get(row.get('BM Nickname'))
+                qc_assignee = qc_lookup.get(row.get('QC Nickname'))
+                new_entry = Home(
+                    prop_code=clean_val(row.get('*Prop Code')),
+                    reo_id=clean_val(row.get('*REO ID')),
+                    address=clean_val(row.get('*Address')),
+                    city=clean_val(row.get('*City')),
+                    state=clean_val(row.get('*State')),
+                    sq_ft=clean_val(row.get('Sq Ft')),
+                    bedrooms=clean_val(row.get('Bedrooms')),
+                    multi_unit_num=clean_val(row.get('Multi Unit Num')),
+                    market=clean_val(row.get('Market')),
+                    market_rules_id=clean_val(market_rules_id),
+                    mgmt_co_id=clean_val(mgmtco_id),
+                    acquired_from=clean_val(row.get('Acquired From')),
+                    bc_assignee=clean_val(bc_assignee),
+                    bm_assignee=clean_val(bm_assignee),
+                    qc_assignee=clean_val(qc_assignee)
+                )
+                db.session.add(new_entry)
+
+        elif table_choice == "Resident":
+            home_lookup = {h.prop_code: h.home_id for h in Home.query.all()}
+            lease_lookup = {l.billing_lease_id: l.lease_id for l in Leases.query.all()}
+            for index, row in df.iterrows():
+                home_id = home_lookup.get(clean_val(row.get('*Prop Code')))
+                lease_id = lease_lookup.get(clean_val(row.get('*Lease ID')))
+                new_entry = Resident(
+                    home_id=home_id,
+                    lease_id=lease_id,
+                    resident_code=clean_val(row.get('*Resident Acct #')),
+                    move_in=clean_val(row.get('*Move-In Date')),
+                    renewal=clean_val(row.get('Renewal Date')),
+                    admin_notes=clean_val(row.get('Admin Notes'))
+                )
+                db.session.add(new_entry)
+
+                db.session.flush()
+
+                new_monthly = MonthlyData(
+                    resident_id=new_entry.resident_id,
+                    rollout=1,
+                    action_note=0,
+                    post_month=current_Post_Month
+                )
+                db.session.add(new_monthly)
+
+            db.session.commit()
+
+        elif table_choice == "Team Member":
+            for index, row in df.iterrows():
+                new_entry = TeamRegister(
+                    role=clean_val(row.get('Position')),
+                    name=clean_val(row.get('Name')),
+                    nickname=clean_val(row.get('Nickname')),
+                    email=clean_val(row.get('Email')),
+                    manager_name=clean_val(row.get('Manager Nickname'))
+                )
+                db.session.add(new_entry)
+        
+        elif table_choice == "Management Company":
+            for index, row in df.iterrows():
+                new_entry = ManagementCompanies(
+                    mgmt_co=clean_val(row.get('*Management Company')),
+                    mgmt_nickname=clean_val(row.get('*MgmtCo Nickname')),
+                    mgmt_abbreviation=clean_val(row.get('MgmtCo Abbreviation'))
+                )
+                db.session.add(new_entry)
+
+        elif table_choice == "Market Rules":
+            mgmtco_lookup = {mc.mgmt_co: mc.id for mc in ManagementCompanies.query.all()}
+            for index, row in df.iterrows():
+                mgmt_co_id = mgmtco_lookup.get(clean_val(row.get('Management Company')))
+                new_entry = MarketRules(
+                    mgmt_co_id=mgmt_co_id,
+                    market_name=clean_val(row.get('Market Name')),
+                    market_rules=clean_val(row.get('Market Rules'))
+                )
+                db.session.add(new_entry)
+
+        elif table_choice == "Leases":
+            for index, row in df.iterrows():
+                new_entry = Leases(
+                    billing_lease_id=clean_val(row.get('*Lease ID')),
+                    states=clean_val(row.get('States')),
+                    intro=clean_val(row.get('Intro Date')),
+                    retirement=clean_val(row.get('Retirement Date')),
+                    renewal=clean_val(row.get('Renewal Date')),
+                    required_utilities=clean_val(row.get('Required Utilities')),
+                    switchable_utilities=clean_val(row.get('Switchable Utilities')),
+                    vacant_utilities=clean_val(row.get('Vacant Utilities')),
+                    service_fee=clean_val(row.get('Service Fee')),
+                    renewal_fee=clean_val(row.get('Renewal Fee')),
+                    setup_fee=clean_val(row.get('Setup Fee')),
+                    move_out_fee=clean_val(row.get('Move Out Fee')),
+                    vacant_service_fee=clean_val(row.get('Vacant Service Fee')),
+                    grace_period=clean_val(row.get('Grace Period')),
+                    other_fees=clean_val(row.get('Other Fees')),
+                    lease_notes=clean_val(row.get('Lease Notes'))
+                )
+                db.session.add(new_entry)
+
+        db.session.commit()
+        flash("File imported successfully!", "success")
+        return redirect(url_for('imports'))
+
+    return render_template('imports.html')
+
+@app.route('/leadership_tools', methods=['GET','POST'])
+def leadership_tools():
+    return render_template('leadership_tools.html')
+
+@app.route('/table_view', methods=['GET','POST'])
+def table_view():
+    table_map = {
+        'Homes': Home,
+        'Resident': Resident,
+        'Leases': Leases,
+        'Team Register': TeamRegister,
+        'Management Companies': ManagementCompanies,
+        'Market Rules': MarketRules
+    }
+    target = request.args.get('table', 'Homes')
+    search_query = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+    model = table_map.get(target, Home)
+    query = model.query
+    query = apply_search(query, model, search_query)
+    columns = [column.key for column in model.__table__.columns]
+    pagination = query.paginate(page=page, per_page=1000, error_out=False)
+    records = pagination.items
+
+    return render_template('table_view.html', 
+                           columns=columns, 
+                           records=records, 
+                           pagination=pagination, 
+                           current_table=target,
+                           table_names=table_map.keys())
+
+# Tables
+class ManagementCompanies(db.Model):
+    __tablename__ = 'ManagementCompanies'
+    id = db.Column(db.Integer, primary_key=True)
+    mgmt_co = db.Column(db.String(255))
+    mgmt_nickname = db.Column(db.String(100))
+    mgmt_abbreviation = db.Column(db.String(5))
+
+    markets = db.relationship('MarketRules', backref='management_company', lazy=True)
+    homes = db.relationship('Home', backref='management_company', lazy=True)
+
+class MarketRules(db.Model):
+    __tablename__ = 'MarketRules'
+    market_rules_id = db.Column(db.Integer, primary_key=True)
+    mgmt_co_id = db.Column(db.Integer, db.ForeignKey('ManagementCompanies.id'))
+    market_name = db.Column(db.String(255))
+    market_rules = db.Column(db.Text)
+
+class TeamRegister(db.Model):
+    __tablename__ = 'TeamRegister'
+    employee_id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.Enum('Project Manager','Team Lead','Assistant Team Lead','QC Specialist','Billing Manager','Billing Coordinator'))
+    name = db.Column(db.String(50))
+    nickname = db.Column(db.String(50))
+    email = db.Column(db.String(50))
+    manager_name = db.Column(db.String(50), db.ForeignKey('TeamRegister.name'))
+
+    manager = db.relationship('TeamRegister', remote_side=[name], backref='subordinates')
+
+class Home(db.Model):
+    __tablename__ = 'Home'
+    home_id = db.Column(db.Integer, primary_key=True)
+    prop_code = db.Column(db.String(12))
+    reo_id = db.Column(db.String(100))
+    address = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(2))
+    sq_ft = db.Column(db.Integer)
+    bedrooms = db.Column(db.Integer)
+    multi_unit_num = db.Column(db.Integer)
+    market = db.Column(db.String(100))
+    market_rules_id = db.Column(db.Integer)
+    mgmt_co_id = db.Column(db.Integer, db.ForeignKey('ManagementCompanies.id'))
+    acquired_from = db.Column(db.String(100))
+    bc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    bm_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    qc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+
+    bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
+    bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
+    qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
+    residents = db.relationship('Resident', backref='home', lazy=True)
+
+class Leases(db.Model):
+    __tablename__ = 'Leases'
+    lease_id = db.Column(db.Integer, primary_key=True)
+    intro = db.Column(db.Date)
+    retirement = db.Column(db.Date)
+    renewal = db.Column(db.Date)
+    service_fee = db.Column(db.Numeric(4,2))
+    renewal_fee = db.Column(db.Numeric(4,2))
+    setup_fee = db.Column(db.Numeric(5,2))
+    move_out_fee = db.Column(db.Numeric(5,2))
+    vacant_service_fee = db.Column(db.Numeric(5,2))
+    grace_period = db.Column(db.Integer)
+    billing_lease_id = db.Column(db.String(10))
+    states = db.Column(db.String(100))
+    required_utilities = db.Column(db.String(25))
+    switchable_utilities = db.Column(db.String(25))
+    vacant_utilities = db.Column(db.String(25))
+    other_fees = db.Column(db.String(200))
+    lease_notes = db.Column(db.String(1000))
+
+    residents = db.relationship('Resident', backref='lease', lazy=True)
+
+class Resident(db.Model):
+    __tablename__ = 'Resident'
+    resident_id = db.Column(db.Integer, primary_key=True)
+    home_id = db.Column(db.Integer, db.ForeignKey('Home.home_id'))
+    lease_id = db.Column(db.Integer, db.ForeignKey('Leases.lease_id'))
+    resident_code = db.Column(db.String(100))
+    admin_notes = db.Column(db.Text)
+    move_in = db.Column(db.Date)
+    renewal = db.Column(db.Date)
+
+    monthly_info = db.relationship('MonthlyData', backref='resident', lazy=True)
+
+class MonthlyData(db.Model):
+    __tablename__ = 'MonthlyData'
+    monthly_id = db.Column(db.Integer, primary_key=True)
+    resident_id = db.Column(db.Integer, db.ForeignKey('Resident.resident_id'))
+    rollout = db.Column(db.Boolean)
+    action_note = db.Column(db.Boolean)
+    billing_note = db.Column(db.String(500))
+    post_month = db.Column(db.Date)
+    status = db.Column(db.Enum('New','Approved','QC Complete','Mailed'))
+
+    utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
+
+class Utilities(db.Model):
+    __tablename__ = 'Utilities'
+    utilities_id = db.Column(db.Integer, primary_key=True)
+    monthly_id = db.Column(db.Integer, db.ForeignKey('MonthlyData.monthly_id'))
+    water = db.Column(db.Boolean)
+    sewer = db.Column(db.Boolean)
+    trash = db.Column(db.Boolean)
+    electric = db.Column(db.Boolean)
+    gas = db.Column(db.Boolean)
+    water2 = db.Column(db.Boolean)
+    sewer2 = db.Column(db.Boolean)
+    trash5 = db.Column(db.Boolean)
+    electric2 = db.Column(db.Boolean)
+    gas2 = db.Column(db.Boolean)
+    vacant_electric = db.Column(db.Boolean)
+    vacant_gas = db.Column(db.Boolean)
+
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 1000, type=int)
+
+    query = Home.query
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    output = []
+    for item in pagination.items:
+        output.append({'bc_assignee': item.bc_user.nickname if item.bc_user else "unassigned", 'prop_code': item.prop_code, 'reo_id': item.reo_id})
+    return jsonify({
+        'data': output,
+        'total_pages': pagination.pages,
+        'current_page': pagination.page,
+        'total_items': pagination.total
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True)

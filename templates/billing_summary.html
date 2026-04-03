@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 20px; background: #30303a; padding: 15px; border-radius: 4px;">
+    <form action="/billing-summary" method="GET" id="dateForm">
+        <label><strong>Select Post Month</strong></label>
+        <select name="post_month" onchange="this.form.submit()">
+            {% for d in date_list %}
+                <option value="{{ d.strftime('%Y-%m-%d') }}" {{ 'selected' if d == selected_date }}>
+                    {{ d.strftime('%m/%d/%Y') }}
+                </option>
+                {% endfor %}
+            {% if not date_list %}
+                <option>No data available</option>
+            {% endif %}
+        </select>
+    </form>
+</div>
+{% if selected_date %}
+    <h2>Data for {{ selected_date.strftime('%m/%d/%Y') }}</h2>
+
+    {% else %}
+    <p>Please upload data to see summary (No data for PM yet)</p>
+{% endif %}
+
+<button type="button" onclick="copySelectedToClipboard(this)" style="margin-bottom: 10px; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+    Copy Selected to Clipboard
+</button>
+
+<table>
+    <thead>
+        <tr>
+            <th style = "width: 40px; text-align: center;">
+                <input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+            <th>Resident</th>
+            <th>Property</th>
+            <th>Status</th>
+            <th>Note</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in details %}
+        <tr>
+            <td style="text-align: center;">
+                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ record.id }}"></td>
+            <td>{{ record.resident.resident_name | default('Unknown Resident') }}</td>
+            
+            <td>{{ record.resident.home.address | default('No Address') }}</td>
+            
+            <td><strong>{{ record.status }}</strong></td>
+            <td>{{ record.billing_note or '--' }}</td>
+        </tr>
+        {% endfor %}
+        
+        {% if not details %}
+        <tr>
+            <td colspan="4" style="text-align: center; color: gray;">
+                No records found for this billing period.
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}
+
+</html>

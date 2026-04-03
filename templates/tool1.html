@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block content %}
+
+<html>
+<h2>TEST TOOL1</h2>
+
+
+<form method="GET" action="{{ url_for('tool1') }}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: end;">
+    <div>
+        <label style="display: block; font-size: 12px;">Market:</label>
+        <select name="market_filter" style="padding: 5px; border-radius: 4px;">
+            <option value="">All Markets</option>
+            {% for m in markets %}
+                <option value="{{ m }}" {% if m == active_market %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 12px;">Management Co:</label>
+        <select name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
+            <option value="">All Companies</option>
+            {% for co in companies %}
+                <option value="{{ co.id }}" {% if co.id|string == active_mgmt %}selected{% endif %}>{{ co.mgmt_co }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 12px;">Billing Coordinator:</label>
+        <select name="bc_filter" style="padding: 5px; border-radius: 4px;">
+            <option value="">All Coordinators</option>
+            {% for b in bcs %}
+                <option value="{{ b.employee_id }}" {% if b.employee_id|string == active_bc %}selected{% endif %}>{{ b.nickname }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Filter
+    </button>
+    
+    <a href="{{ url_for('tool1') }}" style="font-size: 12px; color: gray;">Clear All</a>
+</form>
+
+<button type="button" onclick="copySelectedToClipboard(this)" style="margin-bottom: 10px; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+    Copy Selected to Clipboard
+</button>
+
+<table id="data-table">
+    <thead>
+        <tr>
+            <th style = "width: 40px; text-align: center;">
+                <input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+            <th>BC Assignee</th>
+            <th>Property Code</th>
+            <th>REO ID</th>
+            <th>Address</th>
+            <th>Market</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for home in homes %}
+        <tr>
+            <td style="text-align: center;">
+                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
+            </td>
+            <td>{{ home.bc_user.nickname if home.bc_user else 'Unassigned' }}</td>
+            <td>{{ home.prop_code }}</td>
+            <td>{{ home.reo_id }}</td>
+            <td>{{ home.address }}</td>
+            <td>{{ home.market }}</td>
+        </tr>
+        {% endfor %}
+        
+        {% if not homes %}
+        <tr>
+            <td colspan="5" style="text-align: center; color: gray; padding: 20px;">No properties found matching these filters.</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<div class="pagination-controls" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
+    
+    {% if pagination.has_prev %}
+        <a href="{{ url_for('tool1', page=pagination.prev_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">&laquo; Previous</a>
+    {% else %}
+        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">&laquo; Previous</span>
+    {% endif %}
+
+    <span style="font-weight: bold;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+    {% if pagination.has_next %}
+        <a href="{{ url_for('tool1', page=pagination.next_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Next &raquo;</a>
+    {% else %}
+        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">Next &raquo;</span>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+</html>

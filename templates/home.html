@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<body>
+    <h2>Home</h2>
+
+    <table id="data-table">
+        <thead>
+            <tr><th>Billing Coordinator</th><th>Property Code</th><th>REO ID</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        fetch('http://127.0.0.1:5000/api/data')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.querySelector('#data-table tbody');
+                data.forEach(row => {
+                    tbody.innerHTML += `<tr>
+                        <td>${row.bc_assignee}</td>
+                        <td>${row.prop_code}</td>
+                        <td>${row.reo_id}</td>
+                    </tr>`;
+                });
+            });
+    </script>
+</body>
+{% endblock %}
+</html>
