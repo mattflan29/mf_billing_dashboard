@@ -19,9 +19,16 @@ DB_NAME = 'billing-test-AH_AZ'
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASS}@127.0.0.1:3306/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-current_Post_Month = "2026-05-01"
-
 db = SQLAlchemy(app)
+
+class SystemSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    setting_key = db.Column(db.String(50), unique=True)
+    setting_value = db.Column(db.String(255))
+
+def get_current_post_month():
+    setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
+    return setting.setting_value if setting  else "2026-05-01"
 
 def apply_search(query, model, search_query):
     if not search_query:
@@ -172,7 +179,7 @@ def imports():
                     resident_id=new_entry.resident_id,
                     rollout=1,
                     action_note=0,
-                    post_month=current_Post_Month
+                    post_month=get_current_post_month()
                 )
                 db.session.add(new_monthly)
 
