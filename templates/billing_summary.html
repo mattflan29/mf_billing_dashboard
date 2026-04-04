@@ -4,7 +4,7 @@
 
 {% block content %}
 <div style="margin-bottom: 20px; background: #30303a; padding: 15px; border-radius: 4px;">
-    <form action="/billing-summary" method="GET" id="dateForm">
+    <form action="/billing_summary" method="GET" id="dateForm">
         <label><strong>Select Post Month</strong></label>
         <select name="post_month" onchange="this.form.submit()">
             {% for d in date_list %}
