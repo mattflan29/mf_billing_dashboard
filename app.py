@@ -91,6 +91,40 @@ def tool1():
                            active_mgmt=mgmt_val,
                            active_bc=bc_val)
 
+@app.route('/my_homes')
+def my_homes():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '')
+
+    market_val = request.args.get('market_filter')
+    mgmt_val = request.args.get('mgmt_filter')
+    current_user = "awhitehead@conservice.com"
+
+    query = Home.query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+
+    query = apply_search(query, Home, search_query)
+    query = query.filter(TeamRegister.email == current_user)
+
+    if market_val:
+        query = query.filter(Home.market == market_val)
+    if mgmt_val:
+        query = query.filter(Home.mgmt_co_id == mgmt_val)
+
+    pagination = query.paginate(page=page, per_page=2000, error_out=False)
+    homes = pagination.items
+
+    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    companies = ManagementCompanies.query.all()
+
+    return render_template('my_homes.html', 
+                           homes=homes, 
+                           pagination=pagination,
+                           markets=markets, 
+                           companies=companies,
+                           active_market=market_val,
+                           active_mgmt=mgmt_val,
+                           active_bc=current_user)
+
 @app.route('/billing_summary')
 def billing_summary():
     available_dates = db.session.query(MonthlyData.post_month).distinct().order_by(desc(MonthlyData.post_month)).all()
@@ -292,7 +326,10 @@ def table_view():
         'Leases': Leases,
         'Team Register': TeamRegister,
         'Management Companies': ManagementCompanies,
-        'Market Rules': MarketRules
+        'Market Rules': MarketRules,
+        'System Settings': SystemSettings,
+        'Utilities': Utilities,
+        'Monthly Data': MonthlyData
     }
     target = request.args.get('table', 'Homes')
     search_query = request.args.get('q', '')

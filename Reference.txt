@@ -131,3 +131,10 @@ NOTES:
     MONTHLY Reset 
         -need iF statement for Current/Previous Rollouts, Never Billing, etc
         -need logic to keep the previous months action_note data
+
+    Export to Excel
+
+    Utility columns
+        -dropdown for notes rather than Boolean
+        -some sort of custom column for dates(?)
+        -
