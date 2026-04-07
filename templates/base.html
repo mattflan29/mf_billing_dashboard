@@ -7,20 +7,26 @@
 </head>
 
 <header>
-    <img src="static/ConserviceLogo.png" alt="Conservice Logo" style="float: left;">
-    <h1 style="text-align: right;">Billing Dashboard</h1>
-    <h1 style="float:right">Current PM: {{ current_post_month }}</h1>
-    
-    <nav class="navbar">
+    <img src="static/ConserviceLogo.png" alt="Conservice Logo" id="conservice-logo">
+    <h1 id="pm">Current PM: {{ current_post_month }}</h1>
+    <div>
+        <button class="openbtn" onclick="openNav()">&#9776; Open Sidebar</button>
+        <h1 style="text-align: right;">Billing Dashboard</h1>
+    </div>    
+    <div id="mySidebar" class="sidebar">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">x</a>
         <a href="/">Home</a>
         <a href="/tool1">BC View</a>
         <a href="/billing_summary">Billing Summary</a>
-        <a href="/imports">Imports</a>
-        <a href="/leadership_tools">Leadership Tools</a>
+        <button class="dropdown-btn">Leadership <span class="nav-caret">&#9660;</span></button>
+        <div class="dropdown-container">
+            <a href="/leadership_tools">Leadership Tools</a>
+            <a href="/imports">Imports</a></li>
+        </div>
         <a href="/table_view">Table View</a>
         <a href="/my_homes">My Homes</a>
-
-        <div>
+    </div>
+    <div>
             <input type="textarea" id = "global-search"
                 placeholder="Search Prop Code"
                 value="{{ request.args.get('q', '')}}"
@@ -33,7 +39,6 @@
                   title="Clear Search">&times;</span>
             {% endif %}
         </div>
-    </nav>
 </header>
 
 
@@ -45,4 +50,5 @@
     {% block scripts %}{% endblock %}
 
     <footer>Sincerely - MattieBoi</footer>
+
 </html>

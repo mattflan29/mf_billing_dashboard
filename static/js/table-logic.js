@@ -132,3 +132,36 @@ document.getElementById('global-search').addEventListener('keydown', function(e)
         clearSearch();
     }
 });
+function openNav() {
+    document.getElementById("mySidebar").style.width = "250px";
+    document.getElementById("main").style.marginLeft = "250px";
+    }
+
+function closeNav() {
+    document.getElementById("mySidebar").style.width = "0";
+    document.getElementById("main").style.marginLeft = "0";
+    }
+
+
+
+
+const dropdown = document.getElementsByClassName("dropdown-btn");
+
+for (let i = 0; i < dropdown.length; i++) {
+  dropdown[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    const dropdownContent = this.nextElementSibling;
+    dropdownContent.style.display = (dropdownContent.style.display === "block") ? "none" : "block";
+  });
+}
+
+window.addEventListener('click', function(e) {
+  const sidebar = document.getElementById("mySidebar");
+  const openBtn = document.querySelector(".openbtn");
+
+  if (!sidebar.contains(e.target) && !openBtn.contains(e.target)) {
+    if (sidebar.style.width === "250px") {
+      closeNav();
+    }
+  }
+});

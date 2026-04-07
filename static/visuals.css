@@ -27,6 +27,16 @@ details {
 td {
     height: 0;
 }
+#conservice-logo {
+    height: 60px;
+    width: auto;
+    margin: left;
+}
+#pm {
+    width: auto;
+    float: right;
+    margin-top: 0;
+}
 .flash-message {
     padding: 15px;
     margin-bottom: 20px;
@@ -46,6 +56,16 @@ td {
     color: #721c24;
     border: 1px solid #f87582;
 }
+.openbtn {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: #111;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  float: left;
+}
 .close-btn {
     position: absolute;
     right: 15px;
@@ -54,25 +74,85 @@ td {
     font-size: 20px;
     font-weight: bold;
 }
-.navbar {
-    width: 100%;
-    overflow: auto;
+.sidebar {
+  height: 100%; 
+  width: 0; 
+  position: fixed; 
+  z-index: 1; 
+  top: 0;
+  left: 0;
+  background-color: #111; 
+  overflow-x: hidden; 
+  padding-top: 60px; 
+  transition: 0.25s; 
 }
-.navbar a {
-    float: left;
-    padding: 12px;
-    padding-left: 0px;
-    padding-right: 0px;
-    color: white;
-    width: 25%;
-    text-align: center;
+/* The sidebar links */
+.sidebar a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
 }
-.navbar a:hover {
-    background-color: #ddd;
-    color: black;
+/* When you mouse over the navigation links, change their color */
+.sidebar a:hover {
+  color: #f1f1f1;
+}
+/* Position and style the close button (top right corner) */
+.sidebar .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+  color: white;
+  align-items: right;
+}
+.sidebar .dropdown-btn {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+  background-color: transparent;
+  border: none;
+  width: 250px;
+  text-align: left;
+  cursor: pointer;}
+.dropdown-container {
+  display: none;
+  background-color: #262626;
+  padding-left: 8px;
+}
+.dropdown-container a {
+  padding: 6px 8px 6px 48px;
+  font-size: 20px;
+}
+.active {
+  background-color: rgb(104, 104, 104);
+  color: white;
+}
+.fa-caret-down {
+  float: right;
+  padding-right: 8px;
+}
+/* On mouse-over */
+.sidebar a:hover, .dropdown-btn:hover {
+  color: #f1f1f1;
+}
+.openbtn:hover {
+  background-color: #444;
+}
+.nav-caret {
+    font-size: 15px;
+    vertical-align: middle;
 }
 #global-search {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #ccc;
+    float: right;
+    width: 15%;
 }
+
