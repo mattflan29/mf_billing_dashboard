@@ -7,8 +7,8 @@
 </head>
 
 <header>
-    <img src="static/ConserviceLogo.png" alt="Conservice Logo" id="conservice-logo">
-    <h1 id="pm">Current PM: {{ current_post_month }}</h1>
+    <a href="/"><img src="static/ConserviceLogo.png" alt="Conservice Logo" id="conservice-logo"></a>
+    <h1 id="pm">Current PM: {{ current_post_month.strftime('%m/%d/%Y') }}</h1>
     <div>
         <button class="openbtn" onclick="openNav()">&#9776; Open Sidebar</button>
         <h1 style="text-align: right;">Billing Dashboard</h1>

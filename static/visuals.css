@@ -86,7 +86,6 @@ td {
   padding-top: 60px; 
   transition: 0.25s; 
 }
-/* The sidebar links */
 .sidebar a {
   padding: 8px 8px 8px 32px;
   text-decoration: none;
@@ -94,11 +93,9 @@ td {
   color: #818181;
   display: block;
 }
-/* When you mouse over the navigation links, change their color */
 .sidebar a:hover {
   color: #f1f1f1;
 }
-/* Position and style the close button (top right corner) */
 .sidebar .closebtn {
   position: absolute;
   top: 0;
@@ -119,7 +116,8 @@ td {
   border: none;
   width: 250px;
   text-align: left;
-  cursor: pointer;}
+  cursor: pointer;
+}
 .dropdown-container {
   display: none;
   background-color: #262626;
@@ -137,7 +135,6 @@ td {
   float: right;
   padding-right: 8px;
 }
-/* On mouse-over */
 .sidebar a:hover, .dropdown-btn:hover {
   color: #f1f1f1;
 }

@@ -152,3 +152,6 @@ NOTES:
     Utilities Table
         -add columns for all utiltiy possibilities
         -Summary Acct column
+
+    Updates Page
+        -place where we can log all changes 

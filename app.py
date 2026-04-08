@@ -25,7 +25,8 @@ db = SQLAlchemy(app)
 
 def get_current_post_month():
     setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
-    return setting.setting_value if setting  else "2026-05-01"
+    date_str = setting.setting_value if setting  else "2026-05-01"
+    return datetime.strptime(date_str, '%Y-%m-%d')
 
 @app.context_processor
 def inject_post_month():
