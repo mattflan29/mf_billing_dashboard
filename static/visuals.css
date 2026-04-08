@@ -13,7 +13,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #324c66;
 }
-summary {
+#leadership-tools {
     cursor: pointer;
     font-weight: bold;
     font-size:25px;
@@ -23,6 +23,18 @@ summary {
 details {
     margin-bottom: 0px;
     padding-bottom: 0px
+}
+ #table-details {
+    font-size: 15px;
+    color: #1d037a;
+    font-weight: bold;
+}
+ #table-details:hover {
+    color: #106caa;
+    cursor: pointer;
+}
+ #table-details::marker {
+    content: none;
 }
 td {
     height: 0;
