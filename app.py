@@ -136,6 +136,10 @@ def expanded_view():
                            active_market=market_val,
                            active_mgmt=mgmt_val,
                            active_bc=current_user)
+@app.route('/get_lease_details/<int:lease_id>')
+def get_lease_details(lease_id):
+    lease = Leases.query.get(lease_id)
+    return render_template('partials/lease_details.html', lease=lease)
 
 @app.route('/my_homes')
 def my_homes():

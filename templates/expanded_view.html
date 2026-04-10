@@ -6,7 +6,6 @@
 <html>
 <h2>Expanded View Test</h2>
 
-
 <form method="GET" action="{{ url_for('expanded_view') }}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: end;">
     <div>
         <label style="display: block; font-size: 12px;">Market:</label>
@@ -31,7 +30,6 @@
     <button type="submit" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
         Filter
     </button>
-    
     <a href="{{ url_for('expanded_view') }}" style="font-size: 12px; color: gray;">Clear All</a>
 </form>
 
@@ -39,11 +37,10 @@
     Copy Selected to Clipboard
 </button>
 
-<table id="data-table">
+<table id="data-table" class="display" style="width: 100%;">
     <thead>
         <tr>
-            <th style = "width: 40px; text-align: center;">
-                <input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+            <th style = "width: 40px; text-align: center;"><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
             <th>BC Assignee</th>
             <th>Property Code</th>
             <th>REO ID</th>
@@ -61,7 +58,22 @@
         {% for home in homes %}
         {% set res = home.residents[0] if home.residents else None %}
         {% set monthly = res.monthly_records[0] if res and res.monthly_records else None %}
-        <tr>
+        <tr class="main-row"
+            data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
+            data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
+            data-lease-retirement='{{ res.lease.retirement.strftime("%m/%d/%Y") if res and res.lease and res.lease.retirement else "" }}'
+            data-lease-renewal='{{ res.lease.renewal.strftime("%m/%d/%Y") if res and res.lease and res.lease.renewal else "" }}'
+            data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
+            data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
+            data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
+            data-lease-service-fee='{{res.lease.service_fee if res and res.lease else ""}}'
+            data-lease-renewal-fee='{{res.lease.renewal_fee if res and res.lease else ""}}'
+            data-lease-setup-fee='{{res.lease.setup_fee if res and res.lease else ""}}'
+            data-lease-move-out-fee='{{res.lease.move_out_fee if res and res.lease else ""}}'
+            data-lease-vsf='{{res.lease.vacant_service_fee if res and res.lease else ""}}'
+            data-lease-grace-period='{{res.lease.grace_period if res and res.lease else ""}}'
+            data-lease-other-fees='{{res.lease.other_fees if res and res.lease else ""}}'
+            data-lease-notes='{{res.lease.lease_notes if res and res.lease else ""}}'>
             <td style="text-align: center;">
                 <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
             </td>
@@ -71,26 +83,11 @@
             <td>{{ res.resident_code if res else 'Vac' }}</td>
             <td>{{ res.move_in if res else 'N/A' }}</td>
             <td>{{ res.renewal if res else 'N/A' }}</td>
-            <td>
-                <details>
-                    <summary id="table-details">{{ res.lease.billing_lease_id if res and res.lease else 'N/A' }}</summary>
-                    <div>
-                        <p>{{ res.admin_notes if res else 'N/A' }}</p>
-                        <p>{{ monthly.action_note if monthly else 'N/A' }}</p>
-                        <p>{{ monthly.billing_note if monthly else 'N/A' }}</p>
-                        <p>{{ monthly.status if monthly else 'N/A' }}</p>
-                    </div>
-                </details>
-            </td>
+            <td>{{ res.lease.billing_lease_id if res and res.lease else 'N/A' }}</td>
             <td>{{ res.admin_notes if res else 'N/A' }}</td>
             <td>{{ monthly.action_note if monthly else 'N/A' }}</td>
             <td>{{ monthly.billing_note if monthly else 'N/A' }}</td>
             <td>{{ monthly.status if monthly else 'N/A' }}</td>
-            <td>
-                <span class="badge {{ 'bg-success' if monthly and monthly.status == 'Completed' else 'bg-warning' }}">
-                    {{ monthly.status if monthly else 'No Record' }}
-                </span>
-            </td>
         </tr>
         {% endfor %}
         
@@ -122,5 +119,10 @@
 
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+    <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
 {% endblock %}
 </html>

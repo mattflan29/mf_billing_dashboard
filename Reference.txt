@@ -155,3 +155,10 @@ NOTES:
 
     Updates Page
         -place where we can log all changes 
+
+    Updates Needed
+        -BM and QCer column added
+        -BM email 
+        -Market Rules info added 
+            -on dropdown
+            -something easily accessible

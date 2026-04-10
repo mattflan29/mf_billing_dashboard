@@ -1,5 +1,6 @@
 let lastChecked;
 
+
 //select all checkbox logic
 function toggleAll(masterCheckbox) {
             const checkboxes = document.querySelectorAll('.record-checkbox');
@@ -164,4 +165,86 @@ window.addEventListener('click', function(e) {
       closeNav();
     }
   }
+});
+
+function toggleRowDetails(rowId, leaseId) {
+    const row = document.getElementById(rowId);
+    const container = row.querySelection('.expansion-content');
+
+    if (row.style.display === "none") {
+        if (container.innerHTML.trim() === "") {
+            container.innerHTML = "Loading...";
+            fetch(`/get_lease_details/${leaseId}`)
+                .then(response => response.text())
+                .then(html => { container.innerHTML = html; });
+        }
+        row.style.display = "table-row";
+    } else {
+        row.style.display = "none";
+    }
+}
+$(document).ready(function() {
+    var table = $('#data-table').DataTable({
+        destroy: true,
+        fixedHeader: true,
+        pageLength: 1000,
+        order: [[ 3, 'asc' ]],
+        columnDefs: [{ orderable: false, targets: [0, 1] }]
+    });
+
+    function format(tr) {
+          return `
+            <div class="expansion-content">
+                <table class="inner-grid">
+                    <tr>
+                        <td id="date-column">
+                            <p><strong>Intro:</strong> ${tr.data('lease-intro')}</p>
+                            <p><strong>Renewal:</strong> ${tr.data('lease-renewal')}</p>
+                            <p><strong>Retirement:</strong> ${tr.data('lease-retirement')}</p>
+                            <p><strong>Grace Period:</strong> ${tr.data('lease-grace-period')}</p>
+                            <p><strong>States:</strong> ${tr.data('lease-states')}</p>
+                        </td>
+                        <td id="utilities-column">
+                            <p><strong>Switchable U.:</strong> ${tr.data('lease-switchable-utilities')}</p>
+                            <p><strong>Required U.:</strong> ${tr.data('lease-required-utilities')}</p>
+                            <p><strong>Vacant U.:</strong> ${tr.data('lease-vacant-utilities')}</p>
+                            <p><strong>Lease Notes:</strong> ${tr.data('lease-notes')}</p>
+                        </td>
+                        <td id="fee-column">
+                            <p><strong>Service Fee:</strong> ${tr.data('lease-service-fee')}</p>
+                            <p><strong>Renewal Fee:</strong> ${tr.data('lease-renewal-fee')}</p>
+                            <p><strong>Setup Fee:</strong> ${tr.data('lease-setup-fee')}</p>
+                            <p><strong>VSF:</strong> ${tr.data('lease-vsf')}</p>
+                            <p><strong>Move Out Fee:</strong> ${tr.data('lease-move-out-fee')}</p>
+                            <p><strong>Other Fees:</strong> ${tr.data('lease-other-fees')}</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>`;
+    }
+
+    $('#data-table tbody').on('click', 'tr.main-row', function (e) {
+        if ($(e.target).is('input[type="checkbox"]') || $(e.target).is('a') || $(e.target).is('button')) {
+            return;
+        }
+        var tr = $(this);
+        var row = table.row(tr);
+
+        if (row.child.isShown()) {
+            row.child.hide();
+            tr.removeClass('shown');
+            tr.find('.details-control').html('+');
+        } else {
+            table.rows().every(function() {
+                if (this.child.isShown()) {
+                    this.child.hide();
+                    $(this.node()).removeClass('shown');
+                    $(this.node()).find('.details-control').html('+');
+                }
+            });
+            row.child(format(tr)).show();
+            tr.addClass('shown');
+            tr.find('.details-control').html('-');
+        }
+    });
 });
