@@ -20,7 +20,7 @@
 <div class="import-sections">
 
     <details name="import">
-        <summary><strong>1. Add Team Members</strong></summary>
+        <summary id="leadership-tools"><strong>1. Add Team Members</strong></summary>
         <div style="padding: 10px; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Team Member">
@@ -35,7 +35,7 @@
     </details>
 
     <details name="import">
-        <summary><strong>2. Add Management Companies</strong></summary>
+        <summary id="leadership-tools"><strong>2. Add Management Companies</strong></summary>
         <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Management Company">
@@ -50,7 +50,7 @@
     </details>
 
     <details name="import">
-        <summary><strong>3. Add Market Rules</strong></summary>
+        <summary id="leadership-tools"><strong>3. Add Market Rules</strong></summary>
         <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Market Rules">
@@ -65,7 +65,7 @@
     </details>
 
     <details name="import">
-        <summary><strong>4. Add Leases</strong></summary>
+        <summary id="leadership-tools"><strong>4. Add Leases</strong></summary>
         <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Leases">
@@ -80,7 +80,7 @@
     </details>
 
     <details name="import">
-        <summary><strong>5. Add Homes</strong></summary>
+        <summary id="leadership-tools" ><strong>5. Add Homes</strong></summary>
         <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Home">
@@ -95,12 +95,12 @@
     </details>
 
     <details name="import">
-        <summary><strong>6. Add Residents</strong></summary>
+        <summary id="leadership-tools"><strong>6. Add Residents</strong></summary>
         <div style="padding: 10px; border: 1px solid #eee; margin-top: 5px;">
             <form action="/imports" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="target_table" value="Resident">
                 <label>Upload File:</label>
-                <a href="{{ url_for('static', filename='Import_CSV_Templates/Resident_CSV_TEMPLATE.csv') }}" 
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/NewResident_CSV_TEMPLATE.csv') }}" 
                     download="NewResident_Template.csv" 
                     style="margin-right: 50px; font-size: 14px;">
                     Download Template File</a>

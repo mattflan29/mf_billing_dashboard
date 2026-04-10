@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
 from sqlalchemy import func, extract, desc, text
+from sqlalchemy.orm import joinedload, contains_eager
 from dotenv import load_dotenv
 import os, enum, pandas as pd, numpy as np, io, csv, re
 
@@ -91,6 +92,54 @@ def tool1():
                            active_market=market_val,
                            active_mgmt=mgmt_val,
                            active_bc=bc_val)
+
+@app.route('/expanded_view')
+def expanded_view():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '')
+    market_val = request.args.get('market_filter')
+    mgmt_val = request.args.get('mgmt_filter')
+
+    current_user = "awhitehead@conservice.com"
+    current_month = get_current_post_month()
+
+    query = Home.query
+    query = query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+    query = query.outerjoin(Resident, Home.home_id == Resident.home_id)
+    query = query.outerjoin(Leases, Resident.lease_id == Leases.lease_id)
+    query = query.outerjoin(MonthlyData, 
+                            (Resident.resident_id == MonthlyData.resident_id) & 
+                            (MonthlyData.post_month == current_month))
+    query = query.options(
+        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
+        contains_eager(Home.residents).contains_eager(Resident.lease))
+    
+    query = apply_search(query, Home, search_query)
+    query = query.filter(TeamRegister.email == current_user)
+
+    if market_val:
+        query = query.filter(Home.market == market_val)
+    if mgmt_val:
+        query = query.filter(Home.mgmt_co_id == mgmt_val)
+
+    pagination = query.paginate(page=page, per_page=500, error_out=False)
+    homes = pagination.items
+
+    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    companies = ManagementCompanies.query.all()
+
+    return render_template('expanded_view.html', 
+                           homes=homes, 
+                           pagination=pagination,
+                           markets=markets, 
+                           companies=companies,
+                           active_market=market_val,
+                           active_mgmt=mgmt_val,
+                           active_bc=current_user)
+@app.route('/get_lease_details/<int:lease_id>')
+def get_lease_details(lease_id):
+    lease = Leases.query.get(lease_id)
+    return render_template('partials/lease_details.html', lease=lease)
 
 @app.route('/my_homes')
 def my_homes():
@@ -194,17 +243,27 @@ def imports():
                 db.session.add(new_entry)
 
         elif table_choice == "Resident":
+            df['*Move-In Date'] = pd.to_datetime(df['*Move-In Date'], errors='coerce')
+            df['Renewal Date'] = pd.to_datetime(df['Renewal Date'], errors='coerce')
+
             home_lookup = {h.prop_code: h.home_id for h in Home.query.all()}
             lease_lookup = {l.billing_lease_id: l.lease_id for l in Leases.query.all()}
+
             for index, row in df.iterrows():
+                move_in_val = clean_val(row.get('*Move-In Date'))
+                move_in_date = move_in_val.date() if pd.notnull(move_in_val) else None
+
+                renewal_val = clean_val(row.get('Renewal Date'))
+                renewal_date = renewal_val.date() if pd.notnull(renewal_val) else None
+
                 home_id = home_lookup.get(clean_val(row.get('*Prop Code')))
-                lease_id = lease_lookup.get(clean_val(row.get('*Lease ID')))
+                lease_id = lease_lookup.get(clean_val(row.get('Lease ID')))
                 new_entry = Resident(
                     home_id=home_id,
                     lease_id=lease_id,
                     resident_code=clean_val(row.get('*Resident Acct #')),
-                    move_in=clean_val(row.get('*Move-In Date')),
-                    renewal=clean_val(row.get('Renewal Date')),
+                    move_in=move_in_date,
+                    renewal=renewal_date,
                     admin_notes=clean_val(row.get('Admin Notes'))
                 )
                 db.session.add(new_entry)
@@ -428,7 +487,7 @@ class Leases(db.Model):
     other_fees = db.Column(db.String(200))
     lease_notes = db.Column(db.String(1000))
 
-    residents = db.relationship('Resident', backref='lease', lazy=True)
+    lease_rel = db.relationship('Resident', backref='lease', lazy=True)
 
 class Resident(db.Model):
     __tablename__ = 'Resident'
