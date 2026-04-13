@@ -136,6 +136,7 @@ def expanded_view():
                            active_market=market_val,
                            active_mgmt=mgmt_val,
                            active_bc=current_user)
+
 @app.route('/get_lease_details/<int:lease_id>')
 def get_lease_details(lease_id):
     lease = Leases.query.get(lease_id)
@@ -407,6 +408,58 @@ def table_view():
                            pagination=pagination, 
                            current_table=target,
                            table_names=table_map.keys())
+
+@app.route('/progress_report', methods=['GET'])
+def progress_report():
+    current_month = get_current_post_month()
+
+    status_counts = db.session.query(
+        MonthlyData.status, func.count(MonthlyData.monthly_id)
+    ).filter(MonthlyData.post_month == current_month)\
+        .group_by(MonthlyData.status).all()
+    
+    stats = {status: count for status, count in status_counts}
+    stats['total'] = sum(stats.values())
+
+    #market_breakdown = db.session.query(
+    #    Home.market, func.count(MonthlyData.status)
+    #).join(Resident, Home.home_id == Resident.home_id)\
+     #.join(MonthlyData, Resident.resident_id == MonthlyData.resident_id)\
+     #.filter(MonthlyData.post_month == current_month)\
+     #.group_by(Home.market).all()
+    
+    market_breakdown = db.session.query(
+        Home.market, func.count(Home.home_id))\
+     .filter(Home.market.isnot(None))\
+     .group_by(Home.market).all()
+    markets = {market: market for market, market in market_breakdown}
+    markets['total'] = sum(markets.values())
+
+
+    bc_performance = db.session.query(
+        TeamRegister.nickname,
+        func.count(MonthlyData.monthly_id)
+    ).join(Home, TeamRegister.employee_id == Home.bc_assignee)\
+     .join(Resident, Home.home_id == Resident.home_id)\
+     .join(MonthlyData, Resident.resident_id == MonthlyData.resident_id)\
+     .filter(MonthlyData.post_month == current_month, MonthlyData.status == 'Mailed')\
+     .group_by(TeamRegister.nickname).all()
+    
+    integrity = {
+        'missing_leases': Resident.query.filter(Resident.lease_id == None).count(),
+        'vacant_homes': Home.query.outerjoin(Resident).filter(Resident.resident_id == None).count(),
+        'unassigned_bc': Home.query.filter(Home.bc_assignee == None).count(),
+        'unassigned_bm': Home.query.filter(Home.bm_assignee == None).count(),
+        'unassigned_qc': Home.query.filter(Home.qc_assignee == None).count(),
+        'missing_market': Home.query.filter(Home.market == None).count()
+    }
+    return render_template('progress_report.html', 
+                           stats=stats,
+                           integrity=integrity,
+                           markets=markets,
+                           bc_performance=bc_performance,
+                           market_breakdown=market_breakdown,
+                           current_month=current_month.strftime('%B %Y'))
 
 # Tables
 class SystemSettings(db.Model):

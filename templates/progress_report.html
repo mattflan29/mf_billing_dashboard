@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Progress Report</h1>
+
+<div class="dashboard-container">
+    <h1>Portfolio Status: {{ current_month }}</h1>
+    <hr>
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Total Homes</th>
+                <th>Mailed</th>
+                <th>Remaining</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ stats.total }}</td>
+                <td>{{ stats.get('Mailed', 0) }}</td>
+                <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div>
+        <table>
+            <tr>
+                <th>Market</th>
+                <th>Count</th>
+            </tr>
+            {% for market, count in market_breakdown %}
+            <tr>
+                <td>{{ market }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td>Total:</td>
+                <td>{{ markets.total }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="display: flex; gap: 20px;">
+        <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h4>Data Integrity Flags</h4>
+            <ul>
+                <li>Missing Leases: {{ integrity.get('missing_leases', 0) }}</li>
+                <li>Vacant Homes: {{ integrity.get('vacant_homes', 0) }}</li>
+                <li>Unassigned BC: {{ integrity.get('unassigned_bc', 0) }}</li>
+                <li>Unassigned BM: {{ integrity.get('unassigned_bm', 0) }}</li>
+                <li>Unassigned QC: {{ integrity.get('unassigned_qc', 0) }}</li>
+                <li>Missing Market: {{ integrity.get('missing_market', 0) }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h4>BC Completions</h4>
+        <table style="width: 100%; border-collapse: collapse;">
+            {% for name, count in bc_performance %}
+            <tr>
+                <td>{{ name }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <ul>
+
+</div>
+
+{% endblock %}
+
+</html>
