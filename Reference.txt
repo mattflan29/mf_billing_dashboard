@@ -162,3 +162,5 @@ NOTES:
         -Market Rules info added 
             -on dropdown
             -something easily accessible
+        -Add Residents Import
+            -Set any other current resident to Past

@@ -41,11 +41,11 @@
         </tr>
     </thead>
     <tbody>
-        {% for record in details %}
+        {% for record in billing_records %}
         <tr>
             <td style="text-align: center;">
                 <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ record.id }}"></td>
-            <td>{{ record.resident.resident_name | default('Unknown Resident') }}</td>
+            <td>{{ record.resident.resident_code | default('Unknown Resident') }}</td>
             
             <td>{{ record.resident.home.address | default('No Address') }}</td>
             
@@ -54,7 +54,7 @@
         </tr>
         {% endfor %}
         
-        {% if not details %}
+        {% if not billing_records %}
         <tr>
             <td colspan="4" style="text-align: center; color: gray;">
                 No records found for this billing period.
@@ -63,6 +63,27 @@
         {% endif %}
     </tbody>
 </table>
+
+<div class="pagination-controls" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
+    
+    {% if pagination.has_prev %}
+        <a href="{{ url_for('billing_summary', page=pagination.prev_num, post_month=selected_date, q=search_query) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">&laquo; Previous</a>
+    {% endif %}
+
+    <span style="font-weight: bold;">Page {{ pagination.page }} of {{ pagination.pages }} (Total: {{ pagination.total }})</span>
+
+    {% if pagination.has_next %}
+        <a href="{{ url_for('billing_summary', page=pagination.next_num, post_month=selected_date, q=search_query) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Next &raquo;</a>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+    <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
 {% endblock %}
 
 </html>

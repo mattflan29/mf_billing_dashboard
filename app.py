@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
-from sqlalchemy import func, extract, desc, text
+from sqlalchemy import func, extract, desc, text, case
 from sqlalchemy.orm import joinedload, contains_eager
 from dotenv import load_dotenv
 import os, enum, pandas as pd, numpy as np, io, csv, re
@@ -178,10 +178,14 @@ def my_homes():
 
 @app.route('/billing_summary')
 def billing_summary():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '')
+    
     available_dates = db.session.query(MonthlyData.post_month).distinct().order_by(desc(MonthlyData.post_month)).all()
     date_list = [d[0] for d in available_dates if d[0] is not None]
-    selected_date_str = request.args.get('post_month')
 
+
+    selected_date_str = request.args.get('post_month')
     if selected_date_str:
         selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
     elif date_list:
@@ -189,15 +193,29 @@ def billing_summary():
     else:
         selected_date = None
 
-    details = []
+    query = MonthlyData.query.join(Resident).join(Home)
+
+    if selected_date:
+        query = query.filter(MonthlyData.post_month == selected_date)
+
+    query = apply_search(query, Home, search_query)
+
+    pagination = query.paginate(page=page, per_page=500, error_out=False)
+    billing_records = pagination.items
+
     status_counts = []
     if selected_date:
-        details = MonthlyData.query.filter(func.date(MonthlyData.post_month) == selected_date).all()
         status_counts = db.session.query(
             MonthlyData.status, func.count(MonthlyData.monthly_id)
-            ).filter_by(post_month=selected_date).group_by(MonthlyData.status).all()
+            ).filter(MonthlyData.post_month == selected_date).group_by(MonthlyData.status).all()
 
-    return render_template('billing_summary.html', date_list=date_list, selected_date=selected_date, details=details, status_counts=status_counts)
+    return render_template('billing_summary.html', 
+                           billing_records=billing_records,
+                           pagination=pagination,
+                           date_list=date_list, 
+                           selected_date=selected_date, 
+                           status_counts=status_counts,
+                           search_query=search_query)
 
 @app.route('/imports', methods=['GET','POST'])
 def imports():
@@ -429,12 +447,20 @@ def progress_report():
      #.group_by(Home.market).all()
     
     market_breakdown = db.session.query(
-        Home.market, func.count(Home.home_id))\
-     .filter(Home.market.isnot(None))\
-     .group_by(Home.market).all()
-    markets = {market: market for market, market in market_breakdown}
-    markets['total'] = sum(markets.values())
+        Home.market, 
+        ManagementCompanies.mgmt_nickname,
 
+        func.count(Home.home_id).label('total'),
+        func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
+        func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
+        func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed')
+    ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+     .outerjoin(Resident, Home.home_id == Resident.home_id)\
+     .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+     .filter(Home.market != None)\
+     .order_by(ManagementCompanies.mgmt_nickname, Home.market)\
+     .group_by(Home.market, ManagementCompanies.mgmt_nickname).all()
 
     bc_performance = db.session.query(
         TeamRegister.nickname,
@@ -456,7 +482,6 @@ def progress_report():
     return render_template('progress_report.html', 
                            stats=stats,
                            integrity=integrity,
-                           markets=markets,
                            bc_performance=bc_performance,
                            market_breakdown=market_breakdown,
                            current_month=current_month.strftime('%B %Y'))
@@ -537,7 +562,7 @@ class Leases(db.Model):
     required_utilities = db.Column(db.String(25))
     switchable_utilities = db.Column(db.String(25))
     vacant_utilities = db.Column(db.String(25))
-    other_fees = db.Column(db.String(200))
+    other_fees = db.Column(db.String(1000))
     lease_notes = db.Column(db.String(1000))
 
     lease_rel = db.relationship('Resident', backref='lease', lazy=True)

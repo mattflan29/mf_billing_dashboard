@@ -28,20 +28,33 @@
 
     <div>
         <table>
-            <tr>
-                <th>Market</th>
-                <th>Count</th>
-            </tr>
-            {% for market, count in market_breakdown %}
-            <tr>
-                <td>{{ market }}</td>
-                <td>{{ count }}</td>
-            </tr>
-            {% endfor %}
-            <tr>
-                <td>Total:</td>
-                <td>{{ markets.total }}</td>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Mgmt Co</th>
+                    <th>Market</th>
+                    <th>New</th>
+                    <th>Approved</th>
+                    <th>QC Complete</th>
+                    <th>Mailed</th>
+                    <th>Total</th>
+                    <th>% Done</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in market_breakdown %}
+                {% set percent = (row.mailed / row.total * 100)|round(1) if row.total > 0 else 0 %}
+                <tr>
+                    <td>{{ row.mgmt_nickname }}</td>
+                    <td>{{ row.market }}</td>
+                    <td>{{ row.new }}</td>
+                    <td>{{ row.approved }}</td>
+                    <td>{{ row.qc_complete }}</td>
+                    <td>{{ row.mailed }}</td>
+                    <td>{{ row.total }}</td>
+                    <td>{{ percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 

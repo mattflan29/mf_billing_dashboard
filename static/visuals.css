@@ -24,17 +24,26 @@ details {
     margin-bottom: 0px;
     padding-bottom: 0px
 }
- #table-details {
+#table-details {
     font-size: 15px;
     color: #1d037a;
     font-weight: bold;
+    width: 1%;
+    white-space: nowrap;
 }
- #table-details:hover {
+#table-details:hover {
     color: #106caa;
     cursor: pointer;
 }
- #table-details::marker {
+#table-details::marker {
     content: none;
+}
+/* Expansion View */
+#data-table {
+  width: auto !important;
+  white-space: nowrap;
+  table-layout: auto;
+  
 }
 #data-table tbody tr {
   cursor: pointer;
@@ -43,8 +52,40 @@ details {
 #data-table tbody tr:hover {
   background-color: #f0f0f0 !important;
 }
+#data-table th {
+  text-wrap: wrap;
+}
 tr.expansion-row, .expansion-box {
     cursor: default;
+}
+.expansion-content {
+    white-space: normal !important;
+    background-color: #fcfcfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 10px 40px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    width: 90%;
+}
+#date-column {
+    width: 15% !important;
+    text-wrap: pretty;
+}
+#fee-column {
+    width: 20% !important;
+    text-wrap: pretty;
+}
+#utilities-column {
+    width: 15% !important;
+}
+.inner-grid {
+  width: 100%;
+}
+.inner-grid td {
+    white-space: normal !important;
+    padding: 12px !important;
+    word-wrap: break-word;
 }
 tr.shown {
     background-color: #e0e0e0 !important;
@@ -179,14 +220,7 @@ td {
     float: right;
     width: 15%;
 }
-.expansion-content {
-    background-color: #fcfcfc;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 10px 40px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-}
+
 .inner-grid {
     width: 50%;
     border-collapse: collapse;
@@ -205,14 +239,4 @@ td {
     font-size: 12px;
     font-weight: bold
 }
-#date-column {
-    width: 15%;
-    text-wrap: pretty;
-}
-#fee-column {
-    width: 15%;
-    text-wrap: pretty;
-}
-#utilities-column {
-    width: 20%;
-}
+
