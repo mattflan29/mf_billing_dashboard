@@ -1,5 +1,6 @@
 GET SITE RUNNING:
-    New powershell - .\cloud-sql-proxy.exe brilliant-rhino-489917-j7:us-central1:free-trial-first-project
+    New powershell - cd C:\Users\mflanagan\Desktop\MySQL\mysql\bin
+                    -.\mysqld --console
     New powershell - py app.py
 
 Relationships
@@ -14,6 +15,7 @@ Relationships
         bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
         bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
         qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
+        mrkt_rls = db.relationship('MarketRules', foreign_keys=[market_rules_id], backref='home')
         residents = db.relationship('Resident', backref='home', lazy=True)
     Leases
         residents = db.relationship('Resident', backref='lease', lazy=True)
@@ -162,5 +164,8 @@ NOTES:
         -Market Rules info added 
             -on dropdown
             -something easily accessible
-        -Add Residents Import
-            -Set any other current resident to Past
+        -Imports
+            -Add Residents Import
+                -Set any other current resident to Past
+            -Home import
+                -set market ID based on mgmt co/market name

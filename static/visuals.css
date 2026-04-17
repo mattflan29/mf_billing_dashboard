@@ -67,6 +67,8 @@ tr.expansion-row, .expansion-box {
     margin: 10px 40px;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
     width: 90%;
+    display: flex;
+
 }
 #date-column {
     width: 15% !important;
@@ -239,4 +241,3 @@ td {
     font-size: 12px;
     font-weight: bold
 }
-

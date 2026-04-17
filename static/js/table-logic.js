@@ -195,7 +195,8 @@ $(document).ready(function() {
     function format(tr) {
           return `
             <div class="expansion-content">
-                <table class="inner-grid">
+                <table class="inner-grid" id="lease-info" style="display: inline-block;">
+                    <caption style="font-size: 16px; text-align: left; padding-left: 12px;"><strong>Lease Info</strong></caption>
                     <tr>
                         <td id="date-column">
                             <p><strong>Intro:</strong> ${tr.data('lease-intro')}</p>
@@ -218,6 +219,15 @@ $(document).ready(function() {
                             <p><strong>Move Out Fee:</strong> ${tr.data('lease-move-out-fee')}</p>
                             <p><strong>Other Fees:</strong> ${tr.data('lease-other-fees')}</p>
                         </td>
+                    </tr>
+                </table>
+                <table class="inner-grid" id="market-rules" style="display: inline-block;">
+                    <caption style="font-size: 16px; text-align: left; padding-left: 12px;"><strong>Market Rules
+                        <span style="float: right;">${tr.data('market-name')}</span></strong></caption>
+                    <tr>
+                        <td>
+                            <p style="white-space: pre-line">${tr.data('market-rules')}</p>
+                        <td>
                     </tr>
                 </table>
             </div>`;

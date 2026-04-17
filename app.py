@@ -112,7 +112,8 @@ def expanded_view():
                             (MonthlyData.post_month == current_month))
     query = query.options(
         contains_eager(Home.residents).contains_eager(Resident.monthly_info),
-        contains_eager(Home.residents).contains_eager(Resident.lease))
+        contains_eager(Home.residents).contains_eager(Resident.lease),
+        joinedload(Home.mrkt_rls))
     
     query = apply_search(query, Home, search_query)
     query = query.filter(TeamRegister.email == current_user)
@@ -533,7 +534,7 @@ class Home(db.Model):
     bedrooms = db.Column(db.Integer)
     multi_unit_num = db.Column(db.Integer)
     market = db.Column(db.String(100))
-    market_rules_id = db.Column(db.Integer)
+    market_rules_id = db.Column(db.Integer, db.ForeignKey('MarketRules.market_rules_id'))
     mgmt_co_id = db.Column(db.Integer, db.ForeignKey('ManagementCompanies.id'))
     acquired_from = db.Column(db.String(100))
     bc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
@@ -543,6 +544,7 @@ class Home(db.Model):
     bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
     bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
     qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
+    mrkt_rls = db.relationship('MarketRules', foreign_keys=[market_rules_id], backref='home')
     residents = db.relationship('Resident', backref='home', lazy=True)
 
 class Leases(db.Model):

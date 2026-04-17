@@ -42,6 +42,7 @@
         <tr>
             <th style = "width: 40px; text-align: center;"><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
             <th>BC Assignee</th>
+            <th>Market</th>
             <th>Prop Code</th>
             <th>REO ID</th>
             <th>Resident Acct#</th>
@@ -56,8 +57,10 @@
     </thead>
     <tbody>
         {% for home in homes %}
-        {% set res = home.residents[0] if home.residents else None %}
-        {% set monthly = res.monthly_records[0] if res and res.monthly_records else None %}
+            {% set rules = home.mrkt_rls %}
+            {% set market = home.markets if home.markets else None %}
+            {% set res = home.residents[0] if home.residents else None %}
+            {% set monthly = res.monthly_info[0] if res and res.monthly_info else None %}
         <tr class="main-row"
             data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
             data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
@@ -66,28 +69,31 @@
             data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
             data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
             data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
-            data-lease-service-fee='{{res.lease.service_fee if res and res.lease else ""}}'
-            data-lease-renewal-fee='{{res.lease.renewal_fee if res and res.lease else ""}}'
-            data-lease-setup-fee='{{res.lease.setup_fee if res and res.lease else ""}}'
-            data-lease-move-out-fee='{{res.lease.move_out_fee if res and res.lease else ""}}'
-            data-lease-vsf='{{res.lease.vacant_service_fee if res and res.lease else ""}}'
-            data-lease-grace-period='{{res.lease.grace_period if res and res.lease else ""}}'
-            data-lease-other-fees='{{res.lease.other_fees if res and res.lease else ""}}'
-            data-lease-notes='{{res.lease.lease_notes if res and res.lease else ""}}'>
+            data-lease-service-fee='{{ res.lease.service_fee if res and res.lease else "" }}'
+            data-lease-renewal-fee='{{ res.lease.renewal_fee if res and res.lease else "" }}'
+            data-lease-setup-fee='{{ res.lease.setup_fee if res and res.lease else "" }}'
+            data-lease-move-out-fee='{{ res.lease.move_out_fee if res and res.lease else "" }}'
+            data-lease-vsf='{{ res.lease.vacant_service_fee if res and res.lease else "" }}'
+            data-lease-grace-period='{{ res.lease.grace_period if res and res.lease else "" }}'
+            data-lease-other-fees='{{ res.lease.other_fees if res and res.lease else "" }}'
+            data-lease-notes='{{ res.lease.lease_notes if res and res.lease else "" }}'
+            data-market-name='{{ rules.market_name if rules else "nope" }}'
+            data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
             <td style="text-align: center;">
                 <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
             </td>
-            <td>{{ home.bc_user.nickname if home.bc_user else 'Unassigned' }}</td>
+            <td>{{ home.bc_user.nickname }}</td>
+            <td>{{ home.market }}</td>
             <td>{{ home.prop_code }}</td>
             <td>{{ home.reo_id }}</td>
             <td>{{ res.resident_code if res else 'Vac' }}</td>
-            <td>{{ res.move_in if res else 'N/A' }}</td>
-            <td>{{ res.renewal if res else 'N/A' }}</td>
-            <td>{{ res.lease.billing_lease_id if res and res.lease else 'N/A' }}</td>
-            <td>{{ res.admin_notes if res else 'N/A' }}</td>
-            <td>{{ monthly.action_note if monthly else 'N/A' }}</td>
-            <td>{{ monthly.billing_note if monthly else 'N/A' }}</td>
-            <td>{{ monthly.status if monthly else 'N/A' }}</td>
+            <td>{{ res.move_in.strftime("%m/%d/%Y") if (res and res.move_in) else '-' }}</td>
+            <td>{{ res.renewal if (res and res.renewal) else '-'}}</td>
+            <td>{{ res.lease.billing_lease_id if (res and res.lease) else '-' }}</td>
+            <td>{{ res.admin_notes if (res and res.admin_notes) else '-' }}</td>
+            <td>{{ monthly.action_note if (monthly and monthly.action_note) else '-' }}</td>
+            <td>{{ monthly.billing_note if (monthly and monthly.billing_note) else '-' }}</td>
+            <td>{{ monthly.status if (monthly and monthly.status) else '-' }}</td>
         </tr>
         {% endfor %}
         
