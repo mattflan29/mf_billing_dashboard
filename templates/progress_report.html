@@ -31,7 +31,7 @@
             <thead>
                 <tr>
                     <th>Mgmt Co</th>
-                    <th>Market</th>
+                    <th>State</th>
                     <th>New</th>
                     <th>Approved</th>
                     <th>QC Complete</th>
@@ -41,11 +41,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in market_breakdown %}
+                {% for row in state_breakdown %}
                 {% set percent = (row.mailed / row.total * 100)|round(1) if row.total > 0 else 0 %}
                 <tr>
                     <td>{{ row.mgmt_nickname }}</td>
-                    <td>{{ row.market }}</td>
+                    <td>{{ row.state }}</td>
                     <td>{{ row.new }}</td>
                     <td>{{ row.approved }}</td>
                     <td>{{ row.qc_complete }}</td>

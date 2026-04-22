@@ -169,3 +169,12 @@ NOTES:
                 -Set any other current resident to Past
             -Home import
                 -set market ID based on mgmt co/market name
+
+    4/20/2026
+        - Progress Report  
+            - progress for all clients on main page
+            - tabs for each client to see breakdown
+        -Unclaimed Homes
+            -screen/filter for all Unclaimed
+            -button to "take" the home(assigns it to the active user)
+                -need new column on MonthlyData table for BilledBy?

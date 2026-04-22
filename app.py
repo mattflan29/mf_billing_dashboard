@@ -447,8 +447,8 @@ def progress_report():
      #.filter(MonthlyData.post_month == current_month)\
      #.group_by(Home.market).all()
     
-    market_breakdown = db.session.query(
-        Home.market, 
+    state_breakdown = db.session.query(
+        Home.state, 
         ManagementCompanies.mgmt_nickname,
 
         func.count(Home.home_id).label('total'),
@@ -459,9 +459,9 @@ def progress_report():
     ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
      .outerjoin(Resident, Home.home_id == Resident.home_id)\
      .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
-     .filter(Home.market != None)\
-     .order_by(ManagementCompanies.mgmt_nickname, Home.market)\
-     .group_by(Home.market, ManagementCompanies.mgmt_nickname).all()
+     .filter(Home.state != None)\
+     .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
+     .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
 
     bc_performance = db.session.query(
         TeamRegister.nickname,
@@ -484,7 +484,7 @@ def progress_report():
                            stats=stats,
                            integrity=integrity,
                            bc_performance=bc_performance,
-                           market_breakdown=market_breakdown,
+                           state_breakdown=state_breakdown,
                            current_month=current_month.strftime('%B %Y'))
 
 # Tables
