@@ -138,6 +138,55 @@ def expanded_view():
                            active_mgmt=mgmt_val,
                            active_bc=current_user)
 
+@app.route('/workspace')
+def workspace():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '')
+    market_val = request.args.get('market_filter')
+    mgmt_val = request.args.get('mgmt_filter')
+
+    current_user = "awhitehead@conservice.com"
+    current_month = get_current_post_month()
+
+    query = Home.query
+    query = query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+    query = query.outerjoin(Resident, Home.home_id == Resident.home_id)
+    query = query.outerjoin(Leases, Resident.lease_id == Leases.lease_id)
+    query = query.outerjoin(MonthlyData, 
+                            (Resident.resident_id == MonthlyData.resident_id) & 
+                            (MonthlyData.post_month == current_month))
+    query = query.options(
+        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
+        contains_eager(Home.residents).contains_eager(Resident.lease),
+        joinedload(Home.mrkt_rls))
+    
+    query = apply_search(query, Home, search_query)
+    query = query.filter(TeamRegister.email == current_user)
+
+    if market_val:
+        query = query.filter(Home.market == market_val)
+    if mgmt_val:
+        query = query.filter(Home.mgmt_co_id == mgmt_val)
+
+    pagination = query.paginate(page=page, per_page=500, error_out=False)
+    homes = pagination.items
+
+    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    companies = ManagementCompanies.query.all()
+
+    bc_list = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
+
+
+    return render_template('workspace.html', 
+                           homes=homes, 
+                           pagination=pagination,
+                           markets=markets, 
+                           companies=companies,
+                           active_market=market_val,
+                           active_mgmt=mgmt_val,
+                           active_bc=current_user,
+                           bc_list=bc_list)
+
 @app.route('/get_lease_details/<int:lease_id>')
 def get_lease_details(lease_id):
     lease = Leases.query.get(lease_id)

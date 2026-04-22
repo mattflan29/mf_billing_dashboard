@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block content %}
+
+<html>
+<h2>Workspace</h2>
+
+<form method="GET" action="{{ url_for('workspace') }}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: end;">
+    <div>
+        <label style="display: block; font-size: 12px;">Market:</label>
+        <select name="market_filter" style="padding: 5px; border-radius: 4px;">
+            <option value="">All Markets</option>
+            {% for m in markets %}
+                <option value="{{ m }}" {% if m == active_market %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 12px;">Management Co:</label>
+        <select name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
+            <option value="">All Companies</option>
+            {% for co in companies %}
+                <option value="{{ co.id }}" {% if co.id|string == active_mgmt %}selected{% endif %}>{{ co.mgmt_co }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Filter
+    </button>
+    <a href="{{ url_for('workspace') }}" style="font-size: 12px; color: gray;">Clear All</a>
+</form>
+
+<div id="form-open">
+    <button onclick="on()">Open Form</button>
+</div>
+
+<div id="form-overlay">
+    <button onclick="off()" style="font-size: 20px; position: absolute; top: 20%; right: 20%; cursor: pointer;">X</button>
+    <div id="submission-form">
+        <h2 style="margin-top: 0px;">Updates</h2>
+        <label>Update Billed By:</label>
+        <select>
+            <option value="none">--</option>
+            {% for b in bc_list %}
+            <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
+            {% endfor %}
+        </select>
+        <label>Action Note?</label>
+        <select>
+            <option value="none">--</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+        <label>Billing Note:</label>
+        <textarea style="width: 99%; height: 50px;"></textarea>
+        <label>Status:</label>
+        <select>
+            <option>New</option>
+            <option>Approved</option>
+            <option>Approved - Vacant Only</option>
+            <option>Approved - Rebill</option>
+            <option>Rebill</option>
+            <option>QC Complete</option>
+            <option>Mailed</option>
+            <option>No Billing - No Current Charges</option>
+            <option>No Billing - Insufficient Charges</option>
+            <option>No Billing - Notice</option>
+            <option>No Billing - Res Name</option>
+            <option>Never Billing - See Notes</option>
+            <option>Moved Out</option>
+        </select>
+        <button type="submit" style="position:absolute; bottom: 5px; right: 5px;" onclick="off()">Submit</button>
+    </div>
+</div>
+
+<button type="button" onclick="copySelectedToClipboard(this)" style="margin-bottom: 10px; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+    Copy Selected to Clipboard
+</button>
+
+<table id="data-table" class="display" style="width: auto; min-width: 100%;">
+    <thead>
+        <tr>
+            <th style = "width: 40px; text-align: center;"><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+            <th>BC Assignee</th>
+            <th>Market</th>
+            <th>Prop Code</th>
+            <th>REO ID</th>
+            <th>Resident Acct#</th>
+            <th>Move-In Date</th>
+            <th>Renewal Date</th>
+            <th>Lease ID</th>
+            <th>Admin Notes</th>
+            <th>Action Note</th>
+            <th>Billing Note</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for home in homes %}
+            {% set rules = home.mrkt_rls %}
+            {% set market = home.markets if home.markets else None %}
+            {% set res = home.residents[0] if home.residents else None %}
+            {% set monthly = res.monthly_info[0] if res and res.monthly_info else None %}
+        <tr class="main-row"
+            data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
+            data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
+            data-lease-retirement='{{ res.lease.retirement.strftime("%m/%d/%Y") if res and res.lease and res.lease.retirement else "" }}'
+            data-lease-renewal='{{ res.lease.renewal.strftime("%m/%d/%Y") if res and res.lease and res.lease.renewal else "" }}'
+            data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
+            data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
+            data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
+            data-lease-service-fee='{{ res.lease.service_fee if res and res.lease else "" }}'
+            data-lease-renewal-fee='{{ res.lease.renewal_fee if res and res.lease else "" }}'
+            data-lease-setup-fee='{{ res.lease.setup_fee if res and res.lease else "" }}'
+            data-lease-move-out-fee='{{ res.lease.move_out_fee if res and res.lease else "" }}'
+            data-lease-vsf='{{ res.lease.vacant_service_fee if res and res.lease else "" }}'
+            data-lease-grace-period='{{ res.lease.grace_period if res and res.lease else "" }}'
+            data-lease-other-fees='{{ res.lease.other_fees if res and res.lease else "" }}'
+            data-lease-notes='{{ res.lease.lease_notes if res and res.lease else "" }}'
+            data-market-name='{{ rules.market_name if rules else "nope" }}'
+            data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
+            <td style="text-align: center;">
+                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
+            </td>
+            <td>{{ home.bc_user.nickname }}</td>
+            <td>{{ home.market }}</td>
+            <td>{{ home.prop_code }}</td>
+            <td>{{ home.reo_id }}</td>
+            <td>{{ res.resident_code if res else 'Vac' }}</td>
+            <td>{{ res.move_in.strftime("%m/%d/%Y") if (res and res.move_in) else '-' }}</td>
+            <td>{{ res.renewal if (res and res.renewal) else '-'}}</td>
+            <td>{{ res.lease.billing_lease_id if (res and res.lease) else '-' }}</td>
+            <td>{{ res.admin_notes if (res and res.admin_notes) else '-' }}</td>
+            <td>{{ monthly.action_note if (monthly and monthly.action_note) else '-' }}</td>
+            <td>{{ monthly.billing_note if (monthly and monthly.billing_note) else '-' }}</td>
+            <td>{{ monthly.status if (monthly and monthly.status) else '-' }}</td>
+        </tr>
+        {% endfor %}
+        
+        {% if not homes %}
+        <tr>
+            <td colspan="5" style="text-align: center; color: gray; padding: 20px;">No properties found matching these filters.</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<div class="pagination-controls" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
+    
+    {% if pagination.has_prev %}
+        <a href="{{ url_for('workspace', page=pagination.prev_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">&laquo; Previous</a>
+    {% else %}
+        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">&laquo; Previous</span>
+    {% endif %}
+
+    <span style="font-weight: bold;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+    {% if pagination.has_next %}
+        <a href="{{ url_for('workspace', page=pagination.next_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
+           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Next &raquo;</a>
+    {% else %}
+        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">Next &raquo;</span>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+    <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
+    <script>
+        function on() {
+            document.getElementById("form-overlay").style.display = "block";
+        }
+        function off() {
+            document.getElementById("form-overlay").style.display = "none";
+        }
+    </script>
+{% endblock %}
+</html>

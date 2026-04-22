@@ -169,6 +169,7 @@ NOTES:
                 -Set any other current resident to Past
             -Home import
                 -set market ID based on mgmt co/market name
+        -Dictionary(?) for Workspace rather than expanding lease/market info
 
     4/20/2026
         - Progress Report  
@@ -178,3 +179,8 @@ NOTES:
             -screen/filter for all Unclaimed
             -button to "take" the home(assigns it to the active user)
                 -need new column on MonthlyData table for BilledBy?
+
+
+    4.22.26
+        -add Quick Notes to MonthlyData
+            -reset on PM change
