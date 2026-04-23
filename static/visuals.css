@@ -22,6 +22,18 @@ body {
     padding-bottom: 0px;
     }
 }
+
+.clipboard-copy {
+    margin-bottom: 1%;
+    margin-left: 1%;
+    background-color: #007bff; 
+    color: white; 
+    padding: 10px; 
+    border: none; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: bold;
+}
 #leadership-tools {
     cursor: pointer;
     font-weight: bold;
@@ -39,33 +51,34 @@ details {
     font-weight: bold;
     width: 1%;
     white-space: nowrap;
-}
-#table-details:hover {
-    color: #106caa;
-    cursor: pointer;
-}
-#table-details::marker {
-    content: none;
+
+    &:hover {
+        color: #106caa;
+        cursor: pointer;
+    }
+    &::marker {
+        content: none;
+    }
 }
 /* Expansion View */
 #data-table {
-  width: auto !important;
-  white-space: nowrap;
-  table-layout: auto;
+    width: auto !important;
+    white-space: nowrap;
+    table-layout: auto;
 
-  tbody tr {
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    tbody tr {
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+
+        &:hover {
+            background-color: #f0f0f0 !important;
+        }
     }
 
-  tbody tr:hover {
-    background-color: #f0f0f0 !important;
-  }
-
-  th {
-    text-wrap: wrap;
-  }
-}
+    th {
+        text-wrap: wrap;
+    }
+    }
 
 tr.expansion-row, .expansion-box {
     cursor: default;
@@ -141,14 +154,18 @@ td {
     border: 1px solid #f87582;
 }
 .openbtn {
-  font-size: 20px;
-  cursor: pointer;
-  background-color: #111;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 6px;
-  float: left;
+    font-size: 20px;
+    cursor: pointer;
+    background-color: #111;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    float: left;
+
+    &:hover {
+        background-color: #444;
+    }
 }
 .close-btn {
     position: absolute;
@@ -159,63 +176,64 @@ td {
     font-weight: bold;
 }
 .sidebar {
-  height: 100%; 
-  width: 0; 
-  position: fixed; 
-  z-index: 1; 
-  top: 0;
-  left: 0;
-  background-color: #111; 
-  overflow-x: hidden; 
-  padding-top: 60px; 
-  transition: 0.25s; 
-  margin-left: 0px;
-  padding-left: 0%;
-  padding-right: 0%;
-  
-  a {
-    padding: 8px 8px 8px 32px;
-    text-decoration: none;
-    font-size: 25px;
-    color: #818181;
-    display: block;
-
-    :hover {
-        color: #f1f1f1;
-        }
-    }  
-  .closebtn {
-    position: absolute;
+    height: 100%; 
+    width: 0; 
+    position: fixed; 
+    z-index: 1; 
     top: 0;
-    right: 25px;
-    font-size: 36px;
-    margin-left: 50px;
-    color: white;
-    align-items: right;
-    }
+    left: 0;
+    background-color: #111; 
+    overflow-x: hidden; 
+    padding-top: 60px; 
+    transition: 0.25s; 
+    margin-left: 0px;
+    padding-left: 0%;
+    padding-right: 0%;
+  
+    a {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        display: block;
 
-  .dropdown-btn {
-    padding: 8px 8px 8px 32px;
-    text-decoration: none;
-    font-size: 25px;
-    color: #818181;
-    display: block;
-    transition: 0.3s;
-    background-color: transparent;
-    border: none;
-    width: 250px;
-    text-align: left;
-    cursor: pointer;
+        :hover {
+            color: #f1f1f1;
+            }
+        }  
+    .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+        color: white;
+        align-items: right;
+        }
+
+    .dropdown-btn {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        display: block;
+        transition: 0.3s;
+        background-color: transparent;
+        border: none;
+        width: 250px;
+        text-align: left;
+        cursor: pointer;
+        }
     }
-}
 .dropdown-container {
   display: none;
   background-color: #262626;
   padding-left: 8px;
-}
-.dropdown-container a {
-  padding: 6px 8px 6px 48px;
-  font-size: 20px;
+
+  a {
+    padding: 6px 8px 6px 48px;
+    font-size: 20px;
+  }
 }
 .active {
   background-color: rgb(104, 104, 104);
@@ -228,9 +246,7 @@ td {
 .sidebar a:hover, .dropdown-btn:hover {
   color: #f1f1f1;
 }
-.openbtn:hover {
-  background-color: #444;
-}
+
 .nav-caret {
     font-size: 15px;
     vertical-align: middle;
@@ -239,7 +255,6 @@ td {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #ccc;
-    float: right;
     width: 15%;
 }
 
@@ -247,20 +262,22 @@ td {
     width: 50%;
     border-collapse: collapse;
     font-size: 13px;
+
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+
+        strong {
+            color: #727577;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: bold
+        }
+    }
 }
 
-.inner-grid td {
-    padding: 10px;
-    border-bottom: 1px solid #f0f0f0;
-    vertical-align: top;
-}
 
-.inner-grid td strong {
-    color: #727577;
-    text-transform: uppercase;
-    font-size: 12px;
-    font-weight: bold
-}
 
 /* Form overlay */
 #form-overlay {
@@ -277,6 +294,32 @@ td {
     margin: 0;
 }
 
+#market-rules-expand, #lease-rules-expand {
+    display: none;
+    position: fixed;
+    width: 25%;
+    height: 100%;
+    right: 0;
+    top: 0;
+    background-color: #9595ce;
+    z-index: 100;
+    margin: 0;
+    border-left: 2px solid;
+    border-color: #2d1446;
+
+}
+
+#close-box-window {
+    display: none;
+    position: fixed;
+    width: 75%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    z-index: 100;;
+
+}
+
 #submission-form {
     top: 25%;
     left: 25%;
@@ -285,15 +328,40 @@ td {
     position: absolute;
     background-color: #292966;
     padding: 10px;
+    border-radius: 5px;
+    color: #9ef0ff;
 
     label {
         font-weight: bold;
         padding-top: 10px;
+        padding-bottom: 2px;;
         display: block;
     }
 }
 
-#form-open button {
+#form-open {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    button {
+        margin-bottom: 10px;
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        position: relative;
+    }  
+}
+
+#open-lease-rules button, #open-market-rules button {
     float: right;
     margin-bottom: 10px;
     background-color: #007bff;
@@ -303,8 +371,20 @@ td {
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
-    position: fixed;
+    position: relative;
     bottom: 20px;
     right: 20px;
     z-index: 1000;
+}
+
+input[type="checkbox"] {
+    padding: 2px;
+    
+    &:hover {
+        cursor: pointer;
+    }
+    &:checked {
+        accent-color: #8e70cf;
+        padding: 5px;
+    }
 }

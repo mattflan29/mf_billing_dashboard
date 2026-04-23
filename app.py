@@ -637,6 +637,7 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
+    quick_note = db.Column(db.String(255))
     post_month = db.Column(db.Date)
     status = db.Column(db.Enum('New','Approved','QC Complete','Mailed'))
 

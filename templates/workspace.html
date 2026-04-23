@@ -33,14 +33,40 @@
     <a href="{{ url_for('workspace') }}" style="font-size: 12px; color: gray;">Clear All</a>
 </form>
 
+<button type="button" onclick="copySelectedToClipboard(this)" class="clipboard-copy">
+    Copy Selected to Clipboard
+</button>
+
 <div id="form-open">
+    <button onclick="leaseRulesOn()">Lease Rules</button>
+    <button onclick="marketRulesOn()">Market Rules</button>
     <button onclick="on()">Open Form</button>
 </div>
 
+<div id="market-rules-expand">
+    <div>
+        <button onclick="marketRulesOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Market Rules</h2>
+        <div>
+            <p>market rule info here</p>
+        </div>
+    </div>
+</div>
+
+<div id="lease-rules-expand">
+    <div>
+        <button onclick="leaseRulesOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Leases</h2>
+        <div>
+            <p>lease rule info here</p>
+        </div>
+    </div>
+</div>
+
 <div id="form-overlay">
-    <button onclick="off()" style="font-size: 20px; position: absolute; top: 20%; right: 20%; cursor: pointer;">X</button>
     <div id="submission-form">
         <h2 style="margin-top: 0px;">Updates</h2>
+        <button onclick="off()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
         <label>Update Billed By:</label>
         <select>
             <option value="none">--</option>
@@ -72,13 +98,11 @@
             <option>Never Billing - See Notes</option>
             <option>Moved Out</option>
         </select>
-        <button type="submit" style="position:absolute; bottom: 5px; right: 5px;" onclick="off()">Submit</button>
+        <button type="submit" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;" onclick="off()">Submit</button>
     </div>
 </div>
 
-<button type="button" onclick="copySelectedToClipboard(this)" style="margin-bottom: 10px; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-    Copy Selected to Clipboard
-</button>
+
 
 <table id="data-table" class="display" style="width: auto; min-width: 100%;">
     <thead>
@@ -168,6 +192,8 @@
 
 </div>
 
+<div id="close-box-window" onclick="off()"></div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -176,10 +202,29 @@
     <script>
         function on() {
             document.getElementById("form-overlay").style.display = "block";
+            document.getElementById("market-rules-expand").style.display = "none";
+            document.getElementById("lease-rules-expand").style.display = "none";
         }
         function off() {
             document.getElementById("form-overlay").style.display = "none";
+            document.getElementById("market-rules-expand").style.display = "none"
+            document.getElementById("lease-rules-expand").style.display = "none";
+            document.getElementById("close-box-window").style.display = "none";
         }
+        function marketRulesOn() {
+            document.getElementById("market-rules-expand").style.display = "block";
+            document.getElementById("close-box-window").style.display = "block";
+            document.getElementById("form-overlay").style.display = "none";
+            document.getElementById("lease-rules-expand").style.display = "none";
+        }
+        function leaseRulesOn() {
+            document.getElementById("lease-rules-expand").style.display = "block";
+            document.getElementById("close-box-window").style.display = "block";
+            document.getElementById("form-overlay").style.display = "none";
+            document.getElementById("market-rules-expand").style.display = "none";
+        }
+
+
     </script>
 {% endblock %}
 </html>

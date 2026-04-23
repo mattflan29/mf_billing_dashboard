@@ -8,6 +8,7 @@
 <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
 <head>
     <title>Billing Dashboard</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 
 <header>
@@ -33,7 +34,7 @@
         <a href="/my_homes">My Homes</a>
         <a href="/progress_report">Progress Report</a>
     </div>
-    <div>
+    <div style="text-align: right;">
             <input type="textarea" id = "global-search"
                 placeholder="Search Prop Code"
                 value="{{ request.args.get('q', '')}}"
