@@ -187,74 +187,121 @@ $(document).ready(function() {
     var table = $('#data-table').DataTable({
         destroy: true,
         fixedHeader: true,
-        pageLength: 1000,
+        pageLength: 1000, 
         order: [[ 3, 'asc' ]],
-        columnDefs: [{ orderable: false, targets: [0, 1] }]
-    });
-
-    function format(tr) {
-          return `
-            <div class="expansion-content">
-                <table class="inner-grid" id="lease-info" style="display: inline-block;">
-                    <caption style="font-size: 16px; text-align: left; padding-left: 12px;"><strong>Lease Info</strong></caption>
-                    <tr>
-                        <td id="date-column">
-                            <p><strong>Intro:</strong> ${tr.data('lease-intro')}</p>
-                            <p><strong>Renewal:</strong> ${tr.data('lease-renewal')}</p>
-                            <p><strong>Retirement:</strong> ${tr.data('lease-retirement')}</p>
-                            <p><strong>Grace Period:</strong> ${tr.data('lease-grace-period')}</p>
-                            <p><strong>States:</strong> ${tr.data('lease-states')}</p>
-                        </td>
-                        <td id="utilities-column">
-                            <p><strong>Switchable U.:</strong> ${tr.data('lease-switchable-utilities')}</p>
-                            <p><strong>Required U.:</strong> ${tr.data('lease-required-utilities')}</p>
-                            <p><strong>Vacant U.:</strong> ${tr.data('lease-vacant-utilities')}</p>
-                            <p><strong>Lease Notes:</strong> ${tr.data('lease-notes')}</p>
-                        </td>
-                        <td id="fee-column">
-                            <p><strong>Service Fee:</strong> ${tr.data('lease-service-fee')}</p>
-                            <p><strong>Renewal Fee:</strong> ${tr.data('lease-renewal-fee')}</p>
-                            <p><strong>Setup Fee:</strong> ${tr.data('lease-setup-fee')}</p>
-                            <p><strong>VSF:</strong> ${tr.data('lease-vsf')}</p>
-                            <p><strong>Move Out Fee:</strong> ${tr.data('lease-move-out-fee')}</p>
-                            <p><strong>Other Fees:</strong> ${tr.data('lease-other-fees')}</p>
-                        </td>
-                    </tr>
-                </table>
-                <table class="inner-grid" id="market-rules" style="display: inline-block;">
-                    <caption style="font-size: 16px; text-align: left; padding-left: 12px;"><strong>Market Rules
-                        <span style="float: right;">${tr.data('market-name')}</span></strong></caption>
-                    <tr>
-                        <td>
-                            <p style="white-space: pre-line">${tr.data('market-rules')}</p>
-                        <td>
-                    </tr>
-                </table>
-            </div>`;
-    }
-
-    $('#data-table tbody').on('click', 'tr.main-row', function (e) {
-        if ($(e.target).is('input[type="checkbox"]') || $(e.target).is('a') || $(e.target).is('button')) {
-            return;
-        }
-        var tr = $(this);
-        var row = table.row(tr);
-
-        if (row.child.isShown()) {
-            row.child.hide();
-            tr.removeClass('shown');
-            tr.find('.details-control').html('+');
-        } else {
-            table.rows().every(function() {
-                if (this.child.isShown()) {
-                    this.child.hide();
-                    $(this.node()).removeClass('shown');
-                    $(this.node()).find('.details-control').html('+');
-                }
-            });
-            row.child(format(tr)).show();
-            tr.addClass('shown');
-            tr.find('.details-control').html('-');
-        }
+        autoWidth: false, 
+        columnDefs: [{ orderable: false, targets: [0] }]
     });
 });
+
+function leaseRulesOn() {
+    const leases = {};
+    document.querySelectorAll('.main-row').forEach(row => {
+        const leaseid = row.getAttribute('data-lease-id');
+        if (leaseid && leaseid !== '-' && !leases[leaseid]) {
+            leases[leaseid] = {
+                states: row.getAttribute('data-lease-states'),
+                intro: row.getAttribute('data-lease-intro'),
+                retirement: row.getAttribute('data-lease-retirement'),
+                renewal: row.getAttribute('data-lease-renewal'),
+                requiredUtilities: row.getAttribute('data-lease-required-utilities'),
+                switchableUtilities: row.getAttribute('data-lease-switchable-utilities'),
+                vacantUtilities: row.getAttribute('data-lease-vacant-utilities'),
+                serviceFee: row.getAttribute('data-lease-service-fee'),
+                renewalFee: row.getAttribute('data-lease-renewal-fee'),
+                setupFee: row.getAttribute('data-lease-setup-fee'),
+                moveOutFee: row.getAttribute('data-lease-move-out-fee'),
+                vsf: row.getAttribute('data-lease-vsf'),
+                otherFees: row.getAttribute('data-lease-other-fees'),
+                notes: row.getAttribute('data-lease-notes'),
+                gracePeriod: row.getAttribute('data-lease-grace-period')
+            };
+        }
+    });
+
+    const tabContainer = document.getElementById('lease-tabs-container');
+    tabContainer.innerHTML = '';
+
+    Object.keys(leases).forEach(leaseid => {
+        const btn = document.createElement('button');
+        btn.innerText= leaseid;
+        btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
+        btn.onclick = () => showLeaseDetails(leaseid, leases[leaseid]);
+        tabContainer.appendChild(btn);
+    });
+
+    document.getElementById("lease-rules-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+}
+
+function showLeaseDetails (leaseid, data) {
+    const content = document.getElementById('lease-display-content');
+    content.innerHTML = `
+        <h3>Lease ID: ${leaseid}</h3>
+        <p><strong>Intro:</strong> ${data.intro || '-'}</p>
+        <p><strong>Renewal:</strong> ${data.renewal || '-'}</p>
+        <p><strong>Retirement:</strong> ${data.retirement || '-'}</p>
+        <p><strong>Grace Period:</strong> ${data.gracePeriod || '-'}</p>
+        <p><strong>States:</strong> ${data.states || '-'}</p>
+        <p><strong>Switchable U.:</strong> ${data.switchableUtilities || '-'}</p>
+        <p><strong>Required U.:</strong> ${data.requiredUtilities || '-'}</p>
+        <p><strong>Vacant U.:</strong> ${data.vacantUtilities || '-'}</p>
+        <p><strong>Lease Notes:</strong> ${data.notes || '-'}</p>
+        <p><strong>Service Fee:</strong> ${data.serviceFee || '-'}</p>
+        <p><strong>Renewal Fee:</strong> ${data.renewalFee || '-'}</p>
+        <p><strong>Setup Fee:</strong> ${data.setupFee || '-'}</p>
+        <p><strong>VSF:</strong> ${data.vsf || '-'}</p>
+        <p><strong>Move Out Fee:</strong> ${data.moveOutFee || '-'}</p>
+        <p><strong>Other Fees:</strong> ${data.otherFees || '-'}</p>
+    `;
+}
+
+function formSubmissionOn() {
+    document.getElementById("form-overlay").style.display = "block";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+}
+function containerOff() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none"
+    document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("close-box-window").style.display = "none";
+}
+function marketRulesOn() {
+    const markets = {};
+    document.querySelectorAll('.main-row').forEach(row => {
+        const market = row.getAttribute('data-market-name');
+        if (market && market !== 'nope' && !markets[market]) {
+            markets[market] = {
+                name: row.getAttribute('data-market-name'),
+                rules: row.getAttribute('data-market-rules'),
+            };
+        }
+    });
+
+    const tabContainer = document.getElementById('market-tabs-container');
+    tabContainer.innerHTML = '';
+
+    Object.keys(markets).forEach(market => {
+        const btn = document.createElement('button');
+        btn.innerText= market;
+        btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
+        btn.onclick = () => showMarketDetails(market, markets[market]);
+        tabContainer.appendChild(btn);
+    });
+    
+    document.getElementById("market-rules-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+}
+
+function showMarketDetails (market, data) {
+    const content = document.getElementById('market-display-content');
+    content.innerHTML = `
+        <h3>${market}</h3>
+        <p><strong>Rules:</strong> ${data.rules || '-'}</p>
+    `;
+}

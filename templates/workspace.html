@@ -40,33 +40,31 @@
 <div id="form-open">
     <button onclick="leaseRulesOn()">Lease Rules</button>
     <button onclick="marketRulesOn()">Market Rules</button>
-    <button onclick="on()">Open Form</button>
+    <button onclick="formSubmissionOn()">Open Form</button>
 </div>
 
 <div id="market-rules-expand">
     <div>
-        <button onclick="marketRulesOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <h2>Market Rules</h2>
-        <div>
-            <p>market rule info here</p>
-        </div>
+        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Market Library</h2>
+        <div id="market-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+        <div id="market-display-content"></div>
     </div>
 </div>
 
 <div id="lease-rules-expand">
     <div>
-        <button onclick="leaseRulesOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <h2>Leases</h2>
-        <div>
-            <p>lease rule info here</p>
-        </div>
+        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Lease Library</h2>
+        <div id="lease-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+        <div id="lease-display-content"></div>
     </div>
 </div>
 
 <div id="form-overlay">
     <div id="submission-form">
         <h2 style="margin-top: 0px;">Updates</h2>
-        <button onclick="off()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
         <label>Update Billed By:</label>
         <select>
             <option value="none">--</option>
@@ -98,7 +96,7 @@
             <option>Never Billing - See Notes</option>
             <option>Moved Out</option>
         </select>
-        <button type="submit" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;" onclick="off()">Submit</button>
+        <button type="submit" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;" onclick="containerOff()">Submit</button>
     </div>
 </div>
 
@@ -129,23 +127,24 @@
             {% set res = home.residents[0] if home.residents else None %}
             {% set monthly = res.monthly_info[0] if res and res.monthly_info else None %}
         <tr class="main-row"
-            data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
-            data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
-            data-lease-retirement='{{ res.lease.retirement.strftime("%m/%d/%Y") if res and res.lease and res.lease.retirement else "" }}'
-            data-lease-renewal='{{ res.lease.renewal.strftime("%m/%d/%Y") if res and res.lease and res.lease.renewal else "" }}'
-            data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
-            data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
-            data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
-            data-lease-service-fee='{{ res.lease.service_fee if res and res.lease else "" }}'
-            data-lease-renewal-fee='{{ res.lease.renewal_fee if res and res.lease else "" }}'
-            data-lease-setup-fee='{{ res.lease.setup_fee if res and res.lease else "" }}'
-            data-lease-move-out-fee='{{ res.lease.move_out_fee if res and res.lease else "" }}'
-            data-lease-vsf='{{ res.lease.vacant_service_fee if res and res.lease else "" }}'
-            data-lease-grace-period='{{ res.lease.grace_period if res and res.lease else "" }}'
-            data-lease-other-fees='{{ res.lease.other_fees if res and res.lease else "" }}'
-            data-lease-notes='{{ res.lease.lease_notes if res and res.lease else "" }}'
-            data-market-name='{{ rules.market_name if rules else "nope" }}'
-            data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
+                    data-lease-id='{{ res.lease.billing_lease_id if (res and res.lease) else "-" }}'
+                    data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
+                    data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
+                    data-lease-retirement='{{ res.lease.retirement.strftime("%m/%d/%Y") if res and res.lease and res.lease.retirement else "" }}'
+                    data-lease-renewal='{{ res.lease.renewal.strftime("%m/%d/%Y") if res and res.lease and res.lease.renewal else "" }}'
+                    data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
+                    data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
+                    data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
+                    data-lease-service-fee='{{ res.lease.service_fee if res and res.lease else "" }}'
+                    data-lease-renewal-fee='{{ res.lease.renewal_fee if res and res.lease else "" }}'
+                    data-lease-setup-fee='{{ res.lease.setup_fee if res and res.lease else "" }}'
+                    data-lease-move-out-fee='{{ res.lease.move_out_fee if res and res.lease else "" }}'
+                    data-lease-vsf='{{ res.lease.vacant_service_fee if res and res.lease else "" }}'
+                    data-lease-grace-period='{{ res.lease.grace_period if res and res.lease else "" }}'
+                    data-lease-other-fees='{{ res.lease.other_fees if res and res.lease else "" }}'
+                    data-lease-notes='{{ res.lease.lease_notes if res and res.lease else "" }}'
+                    data-market-name='{{ rules.market_name if rules else "nope" }}'
+                    data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
             <td style="text-align: center;">
                 <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
             </td>
@@ -192,39 +191,12 @@
 
 </div>
 
-<div id="close-box-window" onclick="off()"></div>
+<div id="close-box-window" onclick="containerOff()"></div>
 
 {% endblock %}
 
 {% block scripts %}
     <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
     <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
-    <script>
-        function on() {
-            document.getElementById("form-overlay").style.display = "block";
-            document.getElementById("market-rules-expand").style.display = "none";
-            document.getElementById("lease-rules-expand").style.display = "none";
-        }
-        function off() {
-            document.getElementById("form-overlay").style.display = "none";
-            document.getElementById("market-rules-expand").style.display = "none"
-            document.getElementById("lease-rules-expand").style.display = "none";
-            document.getElementById("close-box-window").style.display = "none";
-        }
-        function marketRulesOn() {
-            document.getElementById("market-rules-expand").style.display = "block";
-            document.getElementById("close-box-window").style.display = "block";
-            document.getElementById("form-overlay").style.display = "none";
-            document.getElementById("lease-rules-expand").style.display = "none";
-        }
-        function leaseRulesOn() {
-            document.getElementById("lease-rules-expand").style.display = "block";
-            document.getElementById("close-box-window").style.display = "block";
-            document.getElementById("form-overlay").style.display = "none";
-            document.getElementById("market-rules-expand").style.display = "none";
-        }
-
-
-    </script>
 {% endblock %}
 </html>

@@ -168,7 +168,7 @@ def workspace():
     if mgmt_val:
         query = query.filter(Home.mgmt_co_id == mgmt_val)
 
-    pagination = query.paginate(page=page, per_page=500, error_out=False)
+    pagination = query.paginate(page=page, per_page=1000, error_out=False)
     homes = pagination.items
 
     markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]

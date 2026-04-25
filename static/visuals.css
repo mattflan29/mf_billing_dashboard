@@ -306,7 +306,7 @@ td {
     margin: 0;
     border-left: 2px solid;
     border-color: #2d1446;
-
+    box-shadow: -3px 0px 20px 0px #0000008f;
 }
 
 #close-box-window {
