@@ -9,6 +9,7 @@ h1 {
     color: white;
 }
 body {
+    width: 100% !important;
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -62,7 +63,7 @@ details {
 }
 /* Expansion View */
 #data-table {
-    width: auto !important;
+    width: 100% !important;
     white-space: nowrap;
     table-layout: auto;
 
@@ -289,7 +290,7 @@ td {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.24);
     z-index: 100;
     margin: 0;
 }
@@ -321,12 +322,13 @@ td {
 }
 
 #submission-form {
-    top: 25%;
-    left: 25%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 40%;
-    height: 35%;
+    height: 75%;
     position: absolute;
-    background-color: #292966;
+    background-color: #292944;
     padding: 10px;
     border-radius: 5px;
     color: #9ef0ff;
@@ -387,4 +389,11 @@ input[type="checkbox"] {
         accent-color: #8e70cf;
         padding: 5px;
     }
+}
+
+#billing-note-cell, #quick-note-cell {
+    white-space: pre;
+    font-size: 11px;
+    max-width: 300px;
+    text-wrap-mode: wrap;
 }

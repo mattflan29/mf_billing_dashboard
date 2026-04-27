@@ -79,7 +79,7 @@ def tool1():
     pagination = query.paginate(page=page, per_page=2000, error_out=False)
     homes = pagination.items
 
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
     bcs = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
 
@@ -126,7 +126,7 @@ def expanded_view():
     pagination = query.paginate(page=page, per_page=500, error_out=False)
     homes = pagination.items
 
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
 
     return render_template('expanded_view.html', 
@@ -171,7 +171,7 @@ def workspace():
     pagination = query.paginate(page=page, per_page=1000, error_out=False)
     homes = pagination.items
 
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
 
     bc_list = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
@@ -186,6 +186,63 @@ def workspace():
                            active_mgmt=mgmt_val,
                            active_bc=current_user,
                            bc_list=bc_list)
+
+@app.route('/workspace/update_monthly_data', methods=['POST'])
+def update_monthly_data():
+    data = request.get_json()
+    res_ids = data.get('res_id', [])
+    current_month = get_current_post_month()
+
+    for r_id in res_ids:
+        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
+        
+        if not monthly:
+            monthly = MonthlyData(resident_id=r_id, post_month=current_month)
+            db.session.add(monthly)
+
+        if monthly:
+            if data.get('status'):
+                monthly.status = data['status']
+            if data.get('quick_note'):
+                timestamp = datetime.now().strftime("%m/%d/%y:")
+                new_quick_note_body = data['quick_note']
+            
+                formatted_quick_note = f"{timestamp} {new_quick_note_body}"
+
+                if data.get('append_quick_note') is True:
+                    existing_quick_note = monthly.quick_note if monthly.quick_note else ""
+                    if existing_quick_note:
+                        monthly.quick_note = f"{existing_quick_note}\n{formatted_quick_note}"
+                    else:
+                        monthly.quick_note = formatted_quick_note
+                else:
+                    monthly.quick_note = formatted_quick_note
+            if data.get('billing_note'):
+                timestamp = datetime.now().strftime("%m/%d/%y:")
+                new_billing_note_body = data['billing_note']
+            
+                formatted_billing_note = f"{timestamp} {new_billing_note_body}"
+
+                if data.get('append_billing_note') is True:
+                    existing_billing_note = monthly.billing_note if monthly.billing_note else ""
+                    if existing_billing_note:
+                        monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
+                    else:
+                        monthly.billing_note = formatted_billing_note
+                else:
+                    monthly.billing_note = formatted_billing_note
+            billed_val = data.get('billed_by')
+            if billed_val == "null":
+                monthly.billed_by = None
+            elif billed_val and billed_val != "none":
+                if str(billed_val).isdigit():
+                    monthly.billed_by = int(billed_val)
+            if data.get('action_note') in ['true', 'false']:
+                monthly.action_note = (data['action_note'] == 'true')
+
+    db.session.commit()
+    return jsonify({"status": "success"}), 200
+            
 
 @app.route('/get_lease_details/<int:lease_id>')
 def get_lease_details(lease_id):
@@ -214,7 +271,7 @@ def my_homes():
     pagination = query.paginate(page=page, per_page=2000, error_out=False)
     homes = pagination.items
 
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
 
     return render_template('my_homes.html', 
@@ -639,8 +696,10 @@ class MonthlyData(db.Model):
     billing_note = db.Column(db.String(500))
     quick_note = db.Column(db.String(255))
     post_month = db.Column(db.Date)
-    status = db.Column(db.Enum('New','Approved','QC Complete','Mailed'))
+    status = db.Column(db.String(255))
+    billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
 
+    billed_by_user = db.relationship('TeamRegister', backref='monthly_data', lazy=True)
     utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
 
 class Utilities(db.Model):

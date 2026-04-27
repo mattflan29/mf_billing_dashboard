@@ -184,3 +184,6 @@ NOTES:
     4.22.26
         -add Quick Notes to MonthlyData
             -reset on PM change
+
+    4.27.26
+        -if status is Approved - mark current user as Billed By

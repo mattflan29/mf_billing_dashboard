@@ -66,22 +66,38 @@
         <h2 style="margin-top: 0px;">Updates</h2>
         <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
         <label>Update Billed By:</label>
-        <select>
-            <option value="none">--</option>
+        <select id="update-billed-by">
+            <option value="">-- No Change --</option>
             {% for b in bc_list %}
             <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
             {% endfor %}
+            <option value="null">Unassigned</option>
         </select>
+
         <label>Action Note?</label>
-        <select>
-            <option value="none">--</option>
+        <select id="update-action-note">
+            <option value="">--</option>
             <option value="true">Yes</option>
             <option value="false">No</option>
         </select>
+
         <label>Billing Note:</label>
-        <textarea style="width: 99%; height: 50px;"></textarea>
+        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+            <input type="checkbox" id="append-billing-note-checkbox">
+            <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't replace)</label>
+        </div>
+        <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
+
+        <label for="">Quick Note:</label>
+        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+            <input type="checkbox" id="append-quick-note-checkbox">
+            <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't replace)</label>
+        </div>
+        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
+
         <label>Status:</label>
-        <select>
+        <select id="update-status">
+            <option value=""> -- </option>
             <option>New</option>
             <option>Approved</option>
             <option>Approved - Vacant Only</option>
@@ -96,7 +112,7 @@
             <option>Never Billing - See Notes</option>
             <option>Moved Out</option>
         </select>
-        <button type="submit" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;" onclick="containerOff()">Submit</button>
+        <button type="submit" onclick="submitBatchUpdate()" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </div>
 </div>
 
@@ -117,6 +133,7 @@
             <th>Admin Notes</th>
             <th>Action Note</th>
             <th>Billing Note</th>
+            <th>Quick Note</th>
             <th>Status</th>
         </tr>
     </thead>
@@ -146,7 +163,7 @@
                     data-market-name='{{ rules.market_name if rules else "nope" }}'
                     data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
             <td style="text-align: center;">
-                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ home.id }}">
+                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ res.resident_id }}">
             </td>
             <td>{{ home.bc_user.nickname }}</td>
             <td>{{ home.market }}</td>
@@ -154,11 +171,12 @@
             <td>{{ home.reo_id }}</td>
             <td>{{ res.resident_code if res else 'Vac' }}</td>
             <td>{{ res.move_in.strftime("%m/%d/%Y") if (res and res.move_in) else '-' }}</td>
-            <td>{{ res.renewal if (res and res.renewal) else '-'}}</td>
+            <td>{{ res.renewal.strftime("%m/%d/%Y") if (res and res.renewal) else '-'}}</td>
             <td>{{ res.lease.billing_lease_id if (res and res.lease) else '-' }}</td>
             <td>{{ res.admin_notes if (res and res.admin_notes) else '-' }}</td>
             <td>{{ monthly.action_note if (monthly and monthly.action_note) else '-' }}</td>
-            <td>{{ monthly.billing_note if (monthly and monthly.billing_note) else '-' }}</td>
+            <td id="billing-note-cell">{{ monthly.billing_note if (monthly and monthly.billing_note) else '-' }}</td>
+            <td id="quick-note-cell">{{ monthly.quick_note if (monthly and monthly.quick_note) else '-' }}</td>
             <td>{{ monthly.status if (monthly and monthly.status) else '-' }}</td>
         </tr>
         {% endfor %}

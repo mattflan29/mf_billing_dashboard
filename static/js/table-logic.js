@@ -305,3 +305,41 @@ function showMarketDetails (market, data) {
         <p><strong>Rules:</strong> ${data.rules || '-'}</p>
     `;
 }
+
+async function submitBatchUpdate() {
+    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const resId = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (resId.length === 0) {
+        alert("No homes selected");
+        return;
+    }
+    
+    const payload = {
+        res_id: resId,
+        billed_by: document.getElementById('update-billed-by').value,
+        action_note: document.getElementById('update-action-note').value,
+        billing_note: document.getElementById('update-billing-note').value,
+        append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
+        quick_note: document.getElementById('update-quick-note').value,
+        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
+        status: document.getElementById('update-status').value
+    };
+
+    try {
+        const response = await fetch('/workspace/update_monthly_data', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            alert("Updated");
+            location.reload() // not sure if i want the page to reload: 
+        } else {
+            alert("Error updating");
+        }
+    } catch (err) {
+        console.error("Error:", err);
+    }
+}
