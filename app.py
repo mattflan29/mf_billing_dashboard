@@ -140,52 +140,15 @@ def expanded_view():
 
 @app.route('/workspace')
 def workspace():
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('q', '')
-    market_val = request.args.get('market_filter')
-    mgmt_val = request.args.get('mgmt_filter')
-
-    current_user = "awhitehead@conservice.com"
-    current_month = get_current_post_month()
-
-    query = Home.query
-    query = query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
-    query = query.outerjoin(Resident, Home.home_id == Resident.home_id)
-    query = query.outerjoin(Leases, Resident.lease_id == Leases.lease_id)
-    query = query.outerjoin(MonthlyData, 
-                            (Resident.resident_id == MonthlyData.resident_id) & 
-                            (MonthlyData.post_month == current_month))
-    query = query.options(
-        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
-        contains_eager(Home.residents).contains_eager(Resident.lease),
-        joinedload(Home.mrkt_rls))
-    
-    query = apply_search(query, Home, search_query)
-    query = query.filter(TeamRegister.email == current_user)
-
-    if market_val:
-        query = query.filter(Home.market == market_val)
-    if mgmt_val:
-        query = query.filter(Home.mgmt_co_id == mgmt_val)
-
-    pagination = query.paginate(page=page, per_page=1000, error_out=False)
-    homes = pagination.items
-
     markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
-
-    bc_list = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
-
+    bc_list = TeamRegister.query.filter(TeamRegister.role == "Billing Coordinator").all()
 
     return render_template('workspace.html', 
-                           homes=homes, 
-                           pagination=pagination,
                            markets=markets, 
                            companies=companies,
-                           active_market=market_val,
-                           active_mgmt=mgmt_val,
-                           active_bc=current_user,
                            bc_list=bc_list)
+
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -702,6 +665,22 @@ class MonthlyData(db.Model):
     billed_by_user = db.relationship('TeamRegister', backref='monthly_data', lazy=True)
     utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
 
+    def to_dict(self):
+        return {
+            "resident_id": self.resident_id,
+            "rollout": self.rollout,
+            "action_note": self.action_note,
+            "billing_note": self.billing_note,
+            "quick_note": self.quick_note,
+            "post_month": self.post_month,
+            "status": self.status,
+            "billed_by": self.billed_by_user.nickname if self.billed_by_user else "-",
+            "home_code": self.resident.home.prop_code,
+            "bc_assignee": self.resident.home.bc_user.nickname if self.resident.home.bc_user else "unassigned",
+            "bm_assignee": self.resident.home.bm_user.nickname if self.resident.home.bm_user else "unassigned",
+            "qc_assignee": self.resident.home.qc_user.nickname if self.resident.home.qc_user else "unassigned"
+        }
+
 class Utilities(db.Model):
     __tablename__ = 'Utilities'
     utilities_id = db.Column(db.Integer, primary_key=True)
@@ -735,6 +714,48 @@ def get_data():
         'current_page': pagination.page,
         'total_items': pagination.total
     })
+
+@app.route('/api/monthly_records')
+def get_monthly_records():
+    current_month = get_current_post_month()
+    current_user = "awhitehead@conservice.com"
+    market_val = request.args.get('market_filter')
+    mgmt_val = request.args.get('mgmt_filter')
+
+    query = Home.query.options(
+        joinedload(Home.residents).joinedload(Resident.monthly_info)
+    ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+
+    query = query.filter(TeamRegister.email == current_user)
+
+    if market_val and market_val != "":
+        query = query.filter(Home.market == market_val)
+    if mgmt_val and mgmt_val != "":
+        query = query.filter(Home.mgmt_co_id == int(mgmt_val))
+
+    homes = query.all()
+
+    output = []
+    for h in homes:
+        res = h.residents[0] if h.residents else None
+        m_info = next((m for m in res.monthly_info if m.post_month == current_month), None) if res else None
+
+        output.append({
+            "bc_assignee": h.bc_user.nickname if h.bc_user else "Unassigned",
+            "home_code": h.prop_code,
+            "resident_code": res.resident_code if res else None,
+            "status": m_info.status if m_info else "-",
+            "quick_note": m_info.quick_note if m_info else "-",
+            "billing_note": m_info.billing_note if m_info else "-",
+            "lease_id": res.lease_id if res else "-",
+            "move_in": res.move_in if res else "-",
+            "renewal": res.renewal if res else "-",
+            "admin_notes": res.admin_notes if res else "-",
+            "market": h.market,
+            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-"
+        })
+
+    return jsonify(output)
 
 if __name__ == '__main__':
     app.run(debug=True)

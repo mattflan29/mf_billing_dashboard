@@ -1,198 +1,162 @@
-let lastChecked;
+let gridApi;
 
+const workspaceColumnData = [
+    { field: "bc_assignee", headerName: "BC", filter: true, sortable: true },
+    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true },
+    { field: "market", headerName: "Market", filter: true, sortable: true },
+    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true},
+    { field: "move_in", headerName: "Move-In Date", filter: true, sortable: true },
+    { field: "renewal", headerName: "Renewal Date", filter: true, sortable: true },
+    { field: "admin_notes", headerName:"Admin Notes", filter: true, sortable: true },
+    { field: "quick_note", headerName: "Quick Note", filter: true, sortable: true },
+    { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true },
+    { field: "status", headerName: "Status", filter: true, sortable: true },
+];
 
-//select all checkbox logic
-function toggleAll(masterCheckbox) {
-            const checkboxes = document.querySelectorAll('.record-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = masterCheckbox.checked;
-            });
+const workspaceGridOptions = {
+    columnDefs: workspaceColumnData,
+    rowData: [],
+    rowSelection: {
+        mode: 'multiRow',
+        headerCheckbox: true,
+        checkboxes: true,
+        enableClickSelection: true
+    },
+    autoSizeStrategy: {
+        type: 'fitGridWidth'
+    },
+
+    pagination: true,
+    paginationPageSize: 10000,
+    paginationPageSizeSelector: [1000, 2000, 5000, 10000],
+    onRowClicked: event => {
+        if (event.data && event.data.resident_id) {
+            openSidePanel(event.data.resident_id); 
         }
-//shift click logic
-function handleShiftClick(e) {
-    let inBetween = false;
-    if (e.shiftKey && lastChecked && lastChecked !== this) {
-        const checkboxes = Array.from(document.querySelectorAll('.record-checkbox'));
-        checkboxes.forEach(cb => {
-            if (cb === this || cb === lastChecked) {
-                inBetween = !inBetween;
-            }
-            if (inBetween) {
-                cb.checked = this.checked;
-            }
+    }
+};
+
+function onBtnExportCSV() {
+    gridApi.exportDataAsCsv();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#workspaceGrid');
+    gridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
+
+    refreshGridData();
+});
+
+function refreshGridData(e) {
+    if (e) e.preventDefault();
+
+    const market = document.getElementById('market_filter').value;
+    const mgmt = document.getElementById('mgmt_filter').value;
+    const search = document.getElementById('global-search').value;
+
+    const url = `/api/monthly_records?market=${market}&mgmt=${mgmt}&q=${search}`;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            console.log("Data received:", data);
+            gridApi.setGridOption('rowData', data);
+        })
+        .catch(err => console.error("Fetch error:", err));
+}
+
+async function submitBatchUpdate() {
+    const selectedRows = gridApi.getSelectedRows();
+    const resIds = selectedRows.map(row => row.resident_id);
+    
+    if (resIds.length === 0) {
+        alert("No records selected");
+        return;
+    }
+    
+    const payload = {
+        res_id: resIds,
+        billed_by: document.getElementById('update-billed-by').value,
+        action_note: document.getElementById('update-action-note').value,
+        billing_note: document.getElementById('update-billing-note').value,
+        append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
+        quick_note: document.getElementById('update-quick-note').value,
+        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
+        status: document.getElementById('update-status').value
+    };
+
+    try {
+        const response = await fetch('/workspace/update_monthly_data', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
         });
+
+        if (response.ok) {
+            alert("Updated successfully");
+            containerOff();
+            refreshGridData();
+        } else {
+            alert("Error updating");
+        }
+    } catch (err) {
+        console.error("Error:", err);
     }
-    lastChecked = this;
 }
 
-
-function getSelectedIDs() {
-    const selected = document.querySelectorAll('.record-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    console.log("Selected IDs:", ids);
-    return ids;
-}
-//copy prop codes to clipboard logic
 function copySelectedToClipboard(btn) {
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+    const selectedRows = gridApi.getSelectedRows();
 
-    if (selectedCheckboxes.length === 0) {
-        alert("No prop codes selected");
+    if (selectedRows.length === 0) {
+        alert("No items selected");
         return;
     }
 
-    const headers = Array.from(document.querySelectorAll('table thead th'));
-    const propCodeIndex = headers.findIndex(th => {
-        const text = th.textContent.trim().toLowerCase()
-        return text.includes('prop') && text.includes('code');
-    });
-
-    if (propCodeIndex === -1) {
-        alert("Prop Code column not found");
-        return;
-    }
-
-    let propCodeList = [];
-    selectedCheckboxes.forEach(cb => {
-        const row = cb.closest('tr');
-        const cells = row.querySelectorAll('td');
-        const propCode = cells[propCodeIndex].innerText.trim();
-        if (propCode) propCodeList.push(propCode);
-    });
+    const propCodeList = selectedRows
+        .map(row => row.home_code)
+        .filter(code => code);
 
     const finalString = propCodeList.join('\n');
-
-    if (!navigator.clipboard) {
-        fallbackCopyTextToClipboard(finalString, btn);
-        return;
-    }
 
     navigator.clipboard.writeText(finalString).then(() => {
         showSuccess(btn);
     }).catch(err => {
-        console.warn('Clipboard API failed, falling back to textarea method', err);
         fallbackCopyTextToClipboard(finalString, btn);
-    })
+    });
 }
-// helper button to show clipboard copy success
+
+function debouncedSearch(val) {
+    if (gridApi) {
+        gridApi.setGridOption('quickFilterText', val);
+    }
+}
+
+function openSidePanel(id) {
+    console.log("Opening panel for resident:", id);
+}
+
 function showSuccess(btn) {
     const originalText = btn.textContent;
     btn.textContent = "Copied!";
-    setTimeout(() => {
-        btn.textContent = originalText;
-    }, 2000);
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
 }
-//fallback method for clipboard copy for older browsers
-function fallbackCopyTextToClipboard(text, btn) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = "-9999px";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showSuccess(btn);
-        } else {
-            alert("Failed to copy to clipboard");
-        }
-    } catch (err) {
-        alert('Fallback copy failed: ', err);
-    }
-    document.body.removeChild(textarea);
-}
-//runs on page load to initialize checkbox event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.record-checkbox').forEach(cb => {
-        cb.addEventListener('click', handleShiftClick);
-    });
-});
 
-let searchTimer;
-function debouncedSearch(val) {
-    clearTimeout(searchTimer);
-
-    searchTimer = setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('q', val);
-        url.searchParams.set('page', 1);
-        window.location.href = url.href;
-    }, 500);
+function containerOff() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("close-box-window").style.display = "none";
 }
-function clearSearch() {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('q');
-    url.searchParams.set('page', 1);
-    window.location.href = url.href;
-}
-document.getElementById('global-search').addEventListener('keydown', function(e) {
-    if (e.key === "Escape") {
-        clearSearch();
-    }
-});
+//menu bar
 function openNav() {
     document.getElementById("mySidebar").style.width = "250px";
     document.getElementById("main").style.marginLeft = "250px";
-    }
+}
 
 function closeNav() {
     document.getElementById("mySidebar").style.width = "0";
     document.getElementById("main").style.marginLeft = "0";
-    }
-
-
-
-
-const dropdown = document.getElementsByClassName("dropdown-btn");
-
-for (let i = 0; i < dropdown.length; i++) {
-  dropdown[i].addEventListener("click", function() {
-    this.classList.toggle("active");
-    const dropdownContent = this.nextElementSibling;
-    dropdownContent.style.display = (dropdownContent.style.display === "block") ? "none" : "block";
-  });
 }
-
-window.addEventListener('click', function(e) {
-  const sidebar = document.getElementById("mySidebar");
-  const openBtn = document.querySelector(".openbtn");
-
-  if (!sidebar.contains(e.target) && !openBtn.contains(e.target)) {
-    if (sidebar.style.width === "250px") {
-      closeNav();
-    }
-  }
-});
-
-function toggleRowDetails(rowId, leaseId) {
-    const row = document.getElementById(rowId);
-    const container = row.querySelection('.expansion-content');
-
-    if (row.style.display === "none") {
-        if (container.innerHTML.trim() === "") {
-            container.innerHTML = "Loading...";
-            fetch(`/get_lease_details/${leaseId}`)
-                .then(response => response.text())
-                .then(html => { container.innerHTML = html; });
-        }
-        row.style.display = "table-row";
-    } else {
-        row.style.display = "none";
-    }
-}
-$(document).ready(function() {
-    var table = $('#data-table').DataTable({
-        destroy: true,
-        fixedHeader: true,
-        pageLength: 1000, 
-        order: [[ 3, 'asc' ]],
-        autoWidth: false, 
-        columnDefs: [{ orderable: false, targets: [0] }]
-    });
-});
 
 function leaseRulesOn() {
     const leases = {};
@@ -219,7 +183,7 @@ function leaseRulesOn() {
         }
     });
 
-    const tabContainer = document.getElementById('lease-tabs-container');
+     const tabContainer = document.getElementById('lease-tabs-container');
     tabContainer.innerHTML = '';
 
     Object.keys(leases).forEach(leaseid => {
@@ -263,12 +227,7 @@ function formSubmissionOn() {
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
 }
-function containerOff() {
-    document.getElementById("form-overlay").style.display = "none";
-    document.getElementById("market-rules-expand").style.display = "none"
-    document.getElementById("lease-rules-expand").style.display = "none";
-    document.getElementById("close-box-window").style.display = "none";
-}
+
 function marketRulesOn() {
     const markets = {};
     document.querySelectorAll('.main-row').forEach(row => {
@@ -291,55 +250,9 @@ function marketRulesOn() {
         btn.onclick = () => showMarketDetails(market, markets[market]);
         tabContainer.appendChild(btn);
     });
-    
+
     document.getElementById("market-rules-expand").style.display = "block";
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
-}
-
-function showMarketDetails (market, data) {
-    const content = document.getElementById('market-display-content');
-    content.innerHTML = `
-        <h3>${market}</h3>
-        <p><strong>Rules:</strong> ${data.rules || '-'}</p>
-    `;
-}
-
-async function submitBatchUpdate() {
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    const resId = Array.from(selectedCheckboxes).map(cb => cb.value);
-    
-    if (resId.length === 0) {
-        alert("No homes selected");
-        return;
-    }
-    
-    const payload = {
-        res_id: resId,
-        billed_by: document.getElementById('update-billed-by').value,
-        action_note: document.getElementById('update-action-note').value,
-        billing_note: document.getElementById('update-billing-note').value,
-        append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
-        quick_note: document.getElementById('update-quick-note').value,
-        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
-        status: document.getElementById('update-status').value
-    };
-
-    try {
-        const response = await fetch('/workspace/update_monthly_data', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            alert("Updated");
-            location.reload() // not sure if i want the page to reload: 
-        } else {
-            alert("Error updating");
-        }
-    } catch (err) {
-        console.error("Error:", err);
-    }
 }

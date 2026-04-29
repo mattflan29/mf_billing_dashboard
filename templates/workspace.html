@@ -6,215 +6,139 @@
 <html>
 <h2>Workspace</h2>
 
-<form method="GET" action="{{ url_for('workspace') }}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: end;">
+<div style="display: flex; justify-content: space-between;">
+    <div style="display: flex;">
     <div>
-        <label style="display: block; font-size: 12px;">Market:</label>
-        <select name="market_filter" style="padding: 5px; border-radius: 4px;">
+        <label style="font-size: 12px;">Market:</label>
+        <select id="market_filter" name="market_filter" style="padding: 5px; border-radius: 4px;">
             <option value="">All Markets</option>
             {% for m in markets %}
-                <option value="{{ m }}" {% if m == active_market %}selected{% endif %}>{{ m }}</option>
+            <option value="{{ m }}">{{ m }}</option>
             {% endfor %}
         </select>
     </div>
 
     <div>
-        <label style="display: block; font-size: 12px;">Management Co:</label>
-        <select name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
+        <label style="font-size: 12px;">Management Co:</label>
+        <select id="mgmt_filter" name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
             <option value="">All Companies</option>
             {% for co in companies %}
-                <option value="{{ co.id }}" {% if co.id|string == active_mgmt %}selected{% endif %}>{{ co.mgmt_co }}</option>
+            <option value="{{ co.id }}">{{ co.mgmt_co }}</option>
             {% endfor %}
         </select>
     </div>
 
-    <button type="submit" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    <button type="button" onclick="refreshGridData()"
+        style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
         Filter
     </button>
-    <a href="{{ url_for('workspace') }}" style="font-size: 12px; color: gray;">Clear All</a>
-</form>
-
-<button type="button" onclick="copySelectedToClipboard(this)" class="clipboard-copy">
-    Copy Selected to Clipboard
-</button>
-
-<div id="form-open">
-    <button onclick="leaseRulesOn()">Lease Rules</button>
-    <button onclick="marketRulesOn()">Market Rules</button>
-    <button onclick="formSubmissionOn()">Open Form</button>
-</div>
-
-<div id="market-rules-expand">
-    <div>
-        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <h2>Market Library</h2>
-        <div id="market-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
-        <div id="market-display-content"></div>
+    <button type="button" onclick="window.location.href='{{ url_for('workspace') }}'"
+        style="font-size: 12px; color: gray; background:none; border:none; cursor:pointer;">
+        Clear All
+    </button>
+    </div>
+    <div style="display: flex;">
+        <button type="button" onclick="copySelectedToClipboard(this)" class="button-format">
+            Copy Selected to Clipboard
+        </button>
+        <button onclick="onBtnExportCSV()" class="button-format">Export to CSV</button>
     </div>
 </div>
 
-<div id="lease-rules-expand">
-    <div>
-        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <h2>Lease Library</h2>
-        <div id="lease-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
-        <div id="lease-display-content"></div>
+
+    <div id="form-open">
+        <button onclick="leaseRulesOn()">Lease Rules</button>
+        <button onclick="marketRulesOn()">Market Rules</button>
+        <button onclick="formSubmissionOn()">Open Form</button>
     </div>
-</div>
 
-<div id="form-overlay">
-    <div id="submission-form">
-        <h2 style="margin-top: 0px;">Updates</h2>
-        <button onclick="containerOff()" style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <label>Update Billed By:</label>
-        <select id="update-billed-by">
-            <option value="">-- No Change --</option>
-            {% for b in bc_list %}
-            <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
-            {% endfor %}
-            <option value="null">Unassigned</option>
-        </select>
-
-        <label>Action Note?</label>
-        <select id="update-action-note">
-            <option value="">--</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-        </select>
-
-        <label>Billing Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-billing-note-checkbox">
-            <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't replace)</label>
+    <div id="market-rules-expand">
+        <div>
+            <button onclick="containerOff()"
+                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+            <h2>Market Library</h2>
+            <div id="market-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+            <div id="market-display-content"></div>
         </div>
-        <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
-
-        <label for="">Quick Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't replace)</label>
-        </div>
-        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
-
-        <label>Status:</label>
-        <select id="update-status">
-            <option value=""> -- </option>
-            <option>New</option>
-            <option>Approved</option>
-            <option>Approved - Vacant Only</option>
-            <option>Approved - Rebill</option>
-            <option>Rebill</option>
-            <option>QC Complete</option>
-            <option>Mailed</option>
-            <option>No Billing - No Current Charges</option>
-            <option>No Billing - Insufficient Charges</option>
-            <option>No Billing - Notice</option>
-            <option>No Billing - Res Name</option>
-            <option>Never Billing - See Notes</option>
-            <option>Moved Out</option>
-        </select>
-        <button type="submit" onclick="submitBatchUpdate()" style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </div>
-</div>
 
+    <div id="lease-rules-expand">
+        <div>
+            <button onclick="containerOff()"
+                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+            <h2>Lease Library</h2>
+            <div id="lease-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+            <div id="lease-display-content"></div>
+        </div>
+    </div>
 
+    <div id="form-overlay">
+        <div id="submission-form">
+            <h2 style="margin-top: 0px;">Updates</h2>
+            <button onclick="containerOff()"
+                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+            <label>Update Billed By:</label>
+            <select id="update-billed-by">
+                <option value="">-- No Change --</option>
+                {% for b in bc_list %}
+                <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
+                {% endfor %}
+                <option value="null">Unassigned</option>
+            </select>
 
-<table id="data-table" class="display" style="width: auto; min-width: 100%;">
-    <thead>
-        <tr>
-            <th style = "width: 40px; text-align: center;"><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
-            <th>BC Assignee</th>
-            <th>Market</th>
-            <th>Prop Code</th>
-            <th>REO ID</th>
-            <th>Resident Acct#</th>
-            <th>Move-In Date</th>
-            <th>Renewal Date</th>
-            <th>Lease ID</th>
-            <th>Admin Notes</th>
-            <th>Action Note</th>
-            <th>Billing Note</th>
-            <th>Quick Note</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for home in homes %}
-            {% set rules = home.mrkt_rls %}
-            {% set market = home.markets if home.markets else None %}
-            {% set res = home.residents[0] if home.residents else None %}
-            {% set monthly = res.monthly_info[0] if res and res.monthly_info else None %}
-        <tr class="main-row"
-                    data-lease-id='{{ res.lease.billing_lease_id if (res and res.lease) else "-" }}'
-                    data-lease-states='{{ res.lease.states if res and res.lease else "" }}'
-                    data-lease-intro='{{ res.lease.intro.strftime("%m/%d/%Y") if res and res.lease and res.lease.intro else "" }}'
-                    data-lease-retirement='{{ res.lease.retirement.strftime("%m/%d/%Y") if res and res.lease and res.lease.retirement else "" }}'
-                    data-lease-renewal='{{ res.lease.renewal.strftime("%m/%d/%Y") if res and res.lease and res.lease.renewal else "" }}'
-                    data-lease-required-utilities='{{ res.lease.required_utilities if res and res.lease else "" }}'
-                    data-lease-switchable-utilities='{{ res.lease.switchable_utilities if res and res.lease else "" }}'
-                    data-lease-vacant-utilities='{{ res.lease.vacant_utilities if res and res.lease else "" }}'
-                    data-lease-service-fee='{{ res.lease.service_fee if res and res.lease else "" }}'
-                    data-lease-renewal-fee='{{ res.lease.renewal_fee if res and res.lease else "" }}'
-                    data-lease-setup-fee='{{ res.lease.setup_fee if res and res.lease else "" }}'
-                    data-lease-move-out-fee='{{ res.lease.move_out_fee if res and res.lease else "" }}'
-                    data-lease-vsf='{{ res.lease.vacant_service_fee if res and res.lease else "" }}'
-                    data-lease-grace-period='{{ res.lease.grace_period if res and res.lease else "" }}'
-                    data-lease-other-fees='{{ res.lease.other_fees if res and res.lease else "" }}'
-                    data-lease-notes='{{ res.lease.lease_notes if res and res.lease else "" }}'
-                    data-market-name='{{ rules.market_name if rules else "nope" }}'
-                    data-market-rules='{{ rules.market_rules if rules else "nope" }}'>
-            <td style="text-align: center;">
-                <input type="checkbox" class="record-checkbox" name="record-checkbox" value="{{ res.resident_id }}">
-            </td>
-            <td>{{ home.bc_user.nickname }}</td>
-            <td>{{ home.market }}</td>
-            <td>{{ home.prop_code }}</td>
-            <td>{{ home.reo_id }}</td>
-            <td>{{ res.resident_code if res else 'Vac' }}</td>
-            <td>{{ res.move_in.strftime("%m/%d/%Y") if (res and res.move_in) else '-' }}</td>
-            <td>{{ res.renewal.strftime("%m/%d/%Y") if (res and res.renewal) else '-'}}</td>
-            <td>{{ res.lease.billing_lease_id if (res and res.lease) else '-' }}</td>
-            <td>{{ res.admin_notes if (res and res.admin_notes) else '-' }}</td>
-            <td>{{ monthly.action_note if (monthly and monthly.action_note) else '-' }}</td>
-            <td id="billing-note-cell">{{ monthly.billing_note if (monthly and monthly.billing_note) else '-' }}</td>
-            <td id="quick-note-cell">{{ monthly.quick_note if (monthly and monthly.quick_note) else '-' }}</td>
-            <td>{{ monthly.status if (monthly and monthly.status) else '-' }}</td>
-        </tr>
-        {% endfor %}
-        
-        {% if not homes %}
-        <tr>
-            <td colspan="5" style="text-align: center; color: gray; padding: 20px;">No properties found matching these filters.</td>
-        </tr>
-        {% endif %}
-    </tbody>
-</table>
+            <label>Action Note?</label>
+            <select id="update-action-note">
+                <option value="">--</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+            </select>
 
-<div class="pagination-controls" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
-    
-    {% if pagination.has_prev %}
-        <a href="{{ url_for('workspace', page=pagination.prev_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
-           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">&laquo; Previous</a>
-    {% else %}
-        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">&laquo; Previous</span>
-    {% endif %}
+            <label>Billing Note:</label>
+            <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+                <input type="checkbox" id="append-billing-note-checkbox">
+                <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+                    replace)</label>
+            </div>
+            <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
 
-    <span style="font-weight: bold;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            <label for="">Quick Note:</label>
+            <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+                <input type="checkbox" id="append-quick-note-checkbox">
+                <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+                    replace)</label>
+            </div>
+            <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
 
-    {% if pagination.has_next %}
-        <a href="{{ url_for('workspace', page=pagination.next_num, market_filter=active_market, mgmt_filter=active_mgmt) }}" 
-           style="padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Next &raquo;</a>
-    {% else %}
-        <span style="padding: 8px 15px; color: #ccc; border: 1px solid #ddd; border-radius: 4px;">Next &raquo;</span>
-    {% endif %}
+            <label>Status:</label>
+            <select id="update-status">
+                <option value=""> -- </option>
+                <option>New</option>
+                <option>Approved</option>
+                <option>Approved - Vacant Only</option>
+                <option>Approved - Rebill</option>
+                <option>Rebill</option>
+                <option>QC Complete</option>
+                <option>Mailed</option>
+                <option>No Billing - No Current Charges</option>
+                <option>No Billing - Insufficient Charges</option>
+                <option>No Billing - Notice</option>
+                <option>No Billing - Res Name</option>
+                <option>Never Billing - See Notes</option>
+                <option>Moved Out</option>
+            </select>
+            <button type="submit" onclick="submitBatchUpdate()"
+                style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
+        </div>
+    </div>
 
-</div>
+    <div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
 
-<div id="close-box-window" onclick="containerOff()"></div>
+    <div id="close-box-window" onclick="containerOff()"></div>
 
-{% endblock %}
+    {% endblock %}
 
-{% block scripts %}
-    <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+    {% block scripts %}
     <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
-{% endblock %}
+    {% endblock %}
+
 </html>

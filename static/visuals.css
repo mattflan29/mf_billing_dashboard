@@ -3,10 +3,18 @@ html {
 }
 header {
     padding: 1%;
+    padding-bottom: .5%;
+    padding-top: .5%;
     background-color: #5c5c99;
 }
 h1 {
     color: white;
+}
+#pm {
+    padding: 0;
+}
+h2 {
+    margin: 10px 0 10px 0;
 }
 body {
     width: 100% !important;
@@ -24,9 +32,7 @@ body {
     }
 }
 
-.clipboard-copy {
-    margin-bottom: 1%;
-    margin-left: 1%;
+.button-format {
     background-color: #007bff; 
     color: white; 
     padding: 10px; 
@@ -129,11 +135,6 @@ td {
     height: 60px;
     width: auto;
     margin: left;
-}
-#pm {
-    width: auto;
-    float: right;
-    margin-top: 0;
 }
 .flash-message {
     padding: 15px;
@@ -256,7 +257,7 @@ td {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #ccc;
-    width: 15%;
+    width: 100%;
 }
 
 .inner-grid {
@@ -396,4 +397,26 @@ input[type="checkbox"] {
     font-size: 11px;
     max-width: 300px;
     text-wrap-mode: wrap;
+}
+.ag-theme-quartz-dark {
+    --ag-background-color: #ffffff2f !important;
+    --ag-header-background-color: #ffffffb6 !important;
+    --ag-odd-row-background-color: #8686863b !important;
+    --ag-accent-color: #000000 !important;
+    --ag-foreground-color: #000000 !important; /* text color */
+    --ag-secondary-foreground-color: #000000 !important; /* header text color */
+    --ag-border-color: #000000 !important;
+    --ag-row-hover-color: #5c5c99c2 !important;
+    --ag-selected-row-parent-background-color: #000000 !important;
+}
+
+.ag-center-cols-container, .ag-center-cols-container, 
+.ag-unselectable, .ag-ltr .ag-body, .ag-body-viewport, .ag-layout-normal,
+.ag-header-container, .ag-header, .ag-header-row, .ag-row-even, .ag-row-odd, .ag-body-vertical-scroll {
+    margin: 0;
+}
+
+#workspaceGrid {
+    height: 75vh;
+    width: 100%;
 }

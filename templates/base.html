@@ -1,23 +1,37 @@
 <!DOCTYPE html>
 <html>
 <link rel="stylesheet" href="static/visuals.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-quartz.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.2.1/dist/ag-grid-community.min.js"></script>
+
 <head>
     <title>Billing Dashboard</title>
     <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 
 <header>
-    <a href="/"><img src="static/ConserviceLogo.png" alt="Conservice Logo" id="conservice-logo"></a>
-    <h1 id="pm">Current PM: {{ current_post_month.strftime('%m/%d/%Y') }}</h1>
-    <div>
+    <div style="display: flex; justify-content: space-between; margin: 0; padding: 0;">
+        <div style="display: flex; margin: 0; padding: 0;">
+            <a href="/"><img src="static/ConserviceLogo.png" alt="Conservice Logo" id="conservice-logo"></a>
+        </div>
+        <div style="display: flex; margin: 0; padding: 0;">
+            <h1 style="margin: 0;">Current PM: {{ current_post_month.strftime('%m/%d/%Y') }}</h1>
+        </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; text-align: center;">
         <button class="openbtn" onclick="openNav()">&#9776; Menu</button>
-        <h1 style="text-align: right;">Billing Dashboard</h1>
-    </div>    
+        <h1 style="margin: 0">Billing Dashboard</h1>
+        <div style="margin-top: auto; margin-bottom: auto;">
+            <input type="textarea" id="global-search" placeholder="Search Prop Code" value="{{ request.args.get('q', '')}}"
+                oninput="debouncedSearch(this.value)">
+            {% if request.args.get('q') %}
+            <span onclick="clearSearch()"
+                style="position: absolute; right: 50px; cursor: pointer; color: #f70909; font-weight: bold; font-size: 18px;"
+                title="Clear Search">&times;</span>
+            {% endif %}
+        </div>
+    </div>
     <div id="mySidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">x</a>
         <a href="/">Home</a>
@@ -34,29 +48,16 @@
         <a href="/my_homes">My Homes</a>
         <a href="/progress_report">Progress Report</a>
     </div>
-    <div style="text-align: right;">
-            <input type="textarea" id = "global-search"
-                placeholder="Search Prop Code"
-                value="{{ request.args.get('q', '')}}"
-                oninput="debouncedSearch(this.value)">
-
-                
-            {% if request.args.get('q') %}
-            <span onclick="clearSearch()"
-                  style="position: absolute; right: 50px; cursor: pointer; color: #f70909; font-weight: bold; font-size: 18px;"
-                  title="Clear Search">&times;</span>
-            {% endif %}
-        </div>
 </header>
 
 
 <div class="container">
     {% block content %}{% endblock %}
 </div>
-    <script src="{{ url_for('static', filename='js/table-logic.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/table-logic.js') }}" defer></script>
 
-    {% block scripts %}{% endblock %}
+{% block scripts %}{% endblock %}
 
-    <footer>Sincerely - MattieBoi</footer>
+<footer>Sincerely - MattieBoi</footer>
 
 </html>
