@@ -6,36 +6,46 @@
 <html>
 <h2>Workspace</h2>
 
-<div style="display: flex; justify-content: space-between;">
+<div style="display: flex; justify-content: space-between; margin: 1%">
     <div style="display: flex;">
-    <div>
-        <label style="font-size: 12px;">Market:</label>
-        <select id="market_filter" name="market_filter" style="padding: 5px; border-radius: 4px;">
-            <option value="">All Markets</option>
-            {% for m in markets %}
-            <option value="{{ m }}">{{ m }}</option>
-            {% endfor %}
-        </select>
-    </div>
+        <div>
+            <label style="font-size: 12px;">Management Co:</label>
+            <select id="mgmt_filter" name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All Companies</option>
+                {% for co in companies %}
+                <option value="{{ co.id }}">{{ co.mgmt_co }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-    <div>
-        <label style="font-size: 12px;">Management Co:</label>
-        <select id="mgmt_filter" name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
-            <option value="">All Companies</option>
-            {% for co in companies %}
-            <option value="{{ co.id }}">{{ co.mgmt_co }}</option>
-            {% endfor %}
-        </select>
-    </div>
+        <div>
+            <label style="font-size: 12px;">State:</label>
+            <select id="state_filter" name="state_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All States</option>
+                {% for s in states %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-    <button type="button" onclick="refreshGridData()"
-        style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        Filter
-    </button>
-    <button type="button" onclick="window.location.href='{{ url_for('workspace') }}'"
-        style="font-size: 12px; color: gray; background:none; border:none; cursor:pointer;">
-        Clear All
-    </button>
+        <div>
+            <label style="font-size: 12px;">Market:</label>
+            <select id="market_filter" name="market_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All Markets</option>
+                {% for m in markets %}
+                <option value="{{ m }}">{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="button" onclick="refreshGridData()"
+            style="height: 80%; margin: auto; padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Filter
+        </button>
+        <button type="button" onclick="window.location.href='{{ url_for('workspace') }}'"
+            style="font-size: 12px; color: gray; background:none; border:none; cursor:pointer;">
+            Clear All
+        </button>
     </div>
     <div style="display: flex;">
         <button type="button" onclick="copySelectedToClipboard(this)" class="button-format">
@@ -46,99 +56,103 @@
 </div>
 
 
+<div>
+    <button id="libraryBtnExpansion" onclick="showLibraryButtons()">+</button>
     <div id="form-open">
-        <button onclick="leaseRulesOn()">Lease Rules</button>
-        <button onclick="marketRulesOn()">Market Rules</button>
-        <button onclick="formSubmissionOn()">Open Form</button>
+        <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
+        <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
+        <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
     </div>
+</div>
 
-    <div id="market-rules-expand">
-        <div>
-            <button onclick="containerOff()"
-                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-            <h2>Market Library</h2>
-            <div id="market-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
-            <div id="market-display-content"></div>
+<div id="market-rules-expand">
+    <div>
+        <button onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Market Library</h2>
+        <div id="market-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+        <div id="market-display-content"></div>
+    </div>
+</div>
+
+<div id="lease-rules-expand">
+    <div>
+        <button onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Lease Library</h2>
+        <div id="lease-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
+        <div id="lease-display-content"></div>
+    </div>
+</div>
+
+<div id="form-overlay">
+    <div id="submission-form">
+        <h2 style="margin-top: 0px;">Updates</h2>
+        <button onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <label>Update Billed By:</label>
+        <select id="update-billed-by">
+            <option value="">-- No Change --</option>
+            {% for b in bc_list %}
+            <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
+            {% endfor %}
+            <option value="null">Unassigned</option>
+        </select>
+
+        <label>Action Note?</label>
+        <select id="update-action-note">
+            <option value="">--</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+
+        <label>Billing Note:</label>
+        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+            <input type="checkbox" id="append-billing-note-checkbox">
+            <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+                replace)</label>
         </div>
-    </div>
+        <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
 
-    <div id="lease-rules-expand">
-        <div>
-            <button onclick="containerOff()"
-                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-            <h2>Lease Library</h2>
-            <div id="lease-tabs-container" style="display: flex; flex-wrap:wrap;"></div>
-            <div id="lease-display-content"></div>
+        <label for="">Quick Note:</label>
+        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+            <input type="checkbox" id="append-quick-note-checkbox">
+            <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+                replace)</label>
         </div>
+        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
+
+        <label>Status:</label>
+        <select id="update-status">
+            <option value=""> -- </option>
+            <option>New</option>
+            <option>Approved</option>
+            <option>Approved - Vacant Only</option>
+            <option>Approved - Rebill</option>
+            <option>Rebill</option>
+            <option>QC Complete</option>
+            <option>Mailed</option>
+            <option>No Billing - No Current Charges</option>
+            <option>No Billing - Insufficient Charges</option>
+            <option>No Billing - Notice</option>
+            <option>No Billing - Res Name</option>
+            <option>Never Billing - See Notes</option>
+            <option>Moved Out</option>
+        </select>
+        <button type="submit" onclick="submitBatchUpdate()"
+            style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </div>
+</div>
 
-    <div id="form-overlay">
-        <div id="submission-form">
-            <h2 style="margin-top: 0px;">Updates</h2>
-            <button onclick="containerOff()"
-                style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-            <label>Update Billed By:</label>
-            <select id="update-billed-by">
-                <option value="">-- No Change --</option>
-                {% for b in bc_list %}
-                <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
-                {% endfor %}
-                <option value="null">Unassigned</option>
-            </select>
+<div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
 
-            <label>Action Note?</label>
-            <select id="update-action-note">
-                <option value="">--</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-            </select>
+<div id="close-box-window" onclick="containerOff()"></div>
+<div id="close-library-buttons" onclick="closeLibraryButtons()"></div>
 
-            <label>Billing Note:</label>
-            <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-                <input type="checkbox" id="append-billing-note-checkbox">
-                <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                    replace)</label>
-            </div>
-            <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
+{% endblock %}
 
-            <label for="">Quick Note:</label>
-            <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-                <input type="checkbox" id="append-quick-note-checkbox">
-                <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                    replace)</label>
-            </div>
-            <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
-
-            <label>Status:</label>
-            <select id="update-status">
-                <option value=""> -- </option>
-                <option>New</option>
-                <option>Approved</option>
-                <option>Approved - Vacant Only</option>
-                <option>Approved - Rebill</option>
-                <option>Rebill</option>
-                <option>QC Complete</option>
-                <option>Mailed</option>
-                <option>No Billing - No Current Charges</option>
-                <option>No Billing - Insufficient Charges</option>
-                <option>No Billing - Notice</option>
-                <option>No Billing - Res Name</option>
-                <option>Never Billing - See Notes</option>
-                <option>Moved Out</option>
-            </select>
-            <button type="submit" onclick="submitBatchUpdate()"
-                style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
-        </div>
-    </div>
-
-    <div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
-
-    <div id="close-box-window" onclick="containerOff()"></div>
-
-    {% endblock %}
-
-    {% block scripts %}
-    <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
-    {% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
+{% endblock %}
 
 </html>

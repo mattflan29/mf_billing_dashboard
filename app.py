@@ -141,10 +141,12 @@ def expanded_view():
 @app.route('/workspace')
 def workspace():
     markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
+    states = sorted([r.state for r in db.session.query(Home.state).distinct().all() if r.state])
     companies = ManagementCompanies.query.all()
     bc_list = TeamRegister.query.filter(TeamRegister.role == "Billing Coordinator").all()
 
     return render_template('workspace.html', 
+                           states=states,
                            markets=markets, 
                            companies=companies,
                            bc_list=bc_list)
@@ -719,11 +721,14 @@ def get_data():
 def get_monthly_records():
     current_month = get_current_post_month()
     current_user = "awhitehead@conservice.com"
-    market_val = request.args.get('market_filter')
-    mgmt_val = request.args.get('mgmt_filter')
+    market_val = request.args.get('market')
+    mgmt_val = request.args.get('mgmt')
+    state_val = request.args.get('state')
+
 
     query = Home.query.options(
-        joinedload(Home.residents).joinedload(Resident.monthly_info)
+        joinedload(Home.residents).joinedload(Resident.monthly_info),
+        joinedload(Home.residents).joinedload(Resident.lease)
     ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
 
     query = query.filter(TeamRegister.email == current_user)
@@ -732,6 +737,9 @@ def get_monthly_records():
         query = query.filter(Home.market == market_val)
     if mgmt_val and mgmt_val != "":
         query = query.filter(Home.mgmt_co_id == int(mgmt_val))
+    if state_val and state_val != "":
+        query = query.filter(Home.state == state_val)
+
 
     homes = query.all()
 
@@ -747,12 +755,13 @@ def get_monthly_records():
             "status": m_info.status if m_info else "-",
             "quick_note": m_info.quick_note if m_info else "-",
             "billing_note": m_info.billing_note if m_info else "-",
-            "lease_id": res.lease_id if res else "-",
+            "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
             "move_in": res.move_in if res else "-",
             "renewal": res.renewal if res else "-",
             "admin_notes": res.admin_notes if res else "-",
-            "market": h.market,
-            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-"
+            "market": h.market or "-",
+            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
+            "state": h.state,
         })
 
     return jsonify(output)

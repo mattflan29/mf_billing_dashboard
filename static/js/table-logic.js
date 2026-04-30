@@ -1,18 +1,39 @@
 let gridApi;
-
 const workspaceColumnData = [
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true },
     { field: "home_code", headerName: "Prop Code", filter: true, sortable: true },
     { field: "market", headerName: "Market", filter: true, sortable: true },
     { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true},
-    { field: "move_in", headerName: "Move-In Date", filter: true, sortable: true },
-    { field: "renewal", headerName: "Renewal Date", filter: true, sortable: true },
+    { field: "move_in", headerName: "Move-In Date", 
+        valueFormatter: params => {
+            if (!params.value || params.value === '-') return '-';
+            const d = new Date(params.value);
+            if (isNaN(d)) return '-';
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+        },
+        comparator: (valueA, valueB) => {
+            const dateA = valueA && valueA !== '-' ? new Date(valueA).getTime() : 0;
+            const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
+            return dateA - dateB;
+        }, filter: true, sortable: true },
+    { field: "renewal", headerName: "Renewal Date", 
+        valueFormatter: params => {
+            if (!params.value || params.value === '-') return '-';
+            const d = new Date(params.value);
+            if (isNaN(d)) return '-';
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+        },
+        comparator: (valueA, valueB) => {
+            const dateA = valueA && valueA !== '-' ? new Date(valueA).getTime() : 0;
+            const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
+            return dateA - dateB;
+        }, filter: true, sortable: true },
+    { field: "lease_id", headerName: "Lease ID", filter: true, sortable: true},
     { field: "admin_notes", headerName:"Admin Notes", filter: true, sortable: true },
     { field: "quick_note", headerName: "Quick Note", filter: true, sortable: true },
     { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
 ];
-
 const workspaceGridOptions = {
     columnDefs: workspaceColumnData,
     rowData: [],
@@ -35,26 +56,24 @@ const workspaceGridOptions = {
         }
     }
 };
-
 function onBtnExportCSV() {
     gridApi.exportDataAsCsv();
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#workspaceGrid');
     gridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
 
     refreshGridData();
 });
-
 function refreshGridData(e) {
     if (e) e.preventDefault();
 
     const market = document.getElementById('market_filter').value;
     const mgmt = document.getElementById('mgmt_filter').value;
+    const state = document.getElementById('state_filter').value;
     const search = document.getElementById('global-search').value;
 
-    const url = `/api/monthly_records?market=${market}&mgmt=${mgmt}&q=${search}`;
+    const url = `/api/monthly_records?mgmt=${mgmt}&state=${state}&market=${market}&q=${search}`;
 
     fetch(url)
         .then(res => res.json())
@@ -64,7 +83,6 @@ function refreshGridData(e) {
         })
         .catch(err => console.error("Fetch error:", err));
 }
-
 async function submitBatchUpdate() {
     const selectedRows = gridApi.getSelectedRows();
     const resIds = selectedRows.map(row => row.resident_id);
@@ -103,7 +121,6 @@ async function submitBatchUpdate() {
         console.error("Error:", err);
     }
 }
-
 function copySelectedToClipboard(btn) {
     const selectedRows = gridApi.getSelectedRows();
 
@@ -124,40 +141,35 @@ function copySelectedToClipboard(btn) {
         fallbackCopyTextToClipboard(finalString, btn);
     });
 }
-
 function debouncedSearch(val) {
     if (gridApi) {
         gridApi.setGridOption('quickFilterText', val);
     }
 }
-
 function openSidePanel(id) {
     console.log("Opening panel for resident:", id);
 }
-
 function showSuccess(btn) {
     const originalText = btn.textContent;
     btn.textContent = "Copied!";
     setTimeout(() => { btn.textContent = originalText; }, 2000);
 }
-
 function containerOff() {
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
     document.getElementById("close-box-window").style.display = "none";
+    closeLibraryButtons();
 }
 //menu bar
 function openNav() {
     document.getElementById("mySidebar").style.width = "250px";
     document.getElementById("main").style.marginLeft = "250px";
 }
-
 function closeNav() {
     document.getElementById("mySidebar").style.width = "0";
     document.getElementById("main").style.marginLeft = "0";
 }
-
 function leaseRulesOn() {
     const leases = {};
     document.querySelectorAll('.main-row').forEach(row => {
@@ -198,8 +210,9 @@ function leaseRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
-}
 
+    closeLibraryButtons();
+}
 function showLeaseDetails (leaseid, data) {
     const content = document.getElementById('lease-display-content');
     content.innerHTML = `
@@ -220,22 +233,24 @@ function showLeaseDetails (leaseid, data) {
         <p><strong>Move Out Fee:</strong> ${data.moveOutFee || '-'}</p>
         <p><strong>Other Fees:</strong> ${data.otherFees || '-'}</p>
     `;
+    closeLibraryButtons();
 }
-
 function formSubmissionOn() {
     document.getElementById("form-overlay").style.display = "block";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    closeLibraryButtons();
 }
-
 function marketRulesOn() {
     const markets = {};
-    document.querySelectorAll('.main-row').forEach(row => {
-        const market = row.getAttribute('data-market-name');
-        if (market && market !== 'nope' && !markets[market]) {
-            markets[market] = {
-                name: row.getAttribute('data-market-name'),
-                rules: row.getAttribute('data-market-rules'),
+    gridApi.forEachNode((node) => {
+        const data = node.data;
+        const marketName = data.market;
+
+        if (marketName && marketName !== '-' && !markets[marketName]) {
+            markets[marketName] = {
+                name: marketName,
+                rules: data.market_rules || '-'
             };
         }
     });
@@ -243,9 +258,10 @@ function marketRulesOn() {
     const tabContainer = document.getElementById('market-tabs-container');
     tabContainer.innerHTML = '';
 
-    Object.keys(markets).forEach(market => {
+    Object.keys(markets).sort().forEach(market => {
         const btn = document.createElement('button');
-        btn.innerText= market;
+        btn.innerText = market;
+        btn.className = "inner-library-button";
         btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
         btn.onclick = () => showMarketDetails(market, markets[market]);
         tabContainer.appendChild(btn);
@@ -255,4 +271,26 @@ function marketRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    closeLibraryButtons();
+}
+function showMarketDetails (market, data) {
+    const content = document.getElementById('market-display-content');
+    content.innerHTML = `
+        <h3>${market}</h3>
+        <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
+    `;
+}
+function showLibraryButtons() {
+    document.getElementById("leaseRulesBtn").style.display = "block";
+    document.getElementById("marketRulesBtn").style.display = "block";
+    document.getElementById("formSubmissionBtn").style.display = "block";
+    document.getElementById("close-library-buttons").style.display = "block";
+    document.getElementById("libraryBtnExpansion").style.display = "none";
+}
+function closeLibraryButtons() {
+    document.getElementById("leaseRulesBtn").style.display = "none";
+    document.getElementById("marketRulesBtn").style.display = "none";
+    document.getElementById("formSubmissionBtn").style.display = "none";
+    document.getElementById("close-library-buttons").style.display = "none";
+    document.getElementById("libraryBtnExpansion").style.display = "block";
 }
