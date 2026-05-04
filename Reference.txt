@@ -117,6 +117,9 @@ Features Needed
 
 
 NOTES: 
+    DONE!!
+        Export to Excel 
+
     IMPORTS - need to make sure various id's wont cause issues
 
     Live Service - Google Cloud Run - docker file will be needed
@@ -134,7 +137,6 @@ NOTES:
         -need iF statement for Current/Previous Rollouts, Never Billing, etc
         -need logic to keep the previous months action_note data
 
-    Export to Excel
 
     Utility columns
         -dropdown for notes rather than Boolean
@@ -169,6 +171,7 @@ NOTES:
                 -Set any other current resident to Past
             -Home import
                 -set market ID based on mgmt co/market name
+        -Dictionary(?) for Workspace rather than expanding lease/market info
 
     4/20/2026
         - Progress Report  
@@ -178,3 +181,22 @@ NOTES:
             -screen/filter for all Unclaimed
             -button to "take" the home(assigns it to the active user)
                 -need new column on MonthlyData table for BilledBy?
+
+
+    4.22.26
+        -add Quick Notes to MonthlyData
+            -reset on PM change
+
+    4.27.26
+        -if status is Approved - mark current user as Billed By
+
+    5.1.26
+        -mass import yoda data daily to keep statuses up to date with actual yoda database
+
+    5.4.26
+        -Quick/Billing notes add actual time to timestamp
+            -maybe remove quick notes
+        -Progress Report - ability to add notes if a client was late or something
+        -Some sort of accuracy tracker
+            -rebill notes?
+            -probs need a rebill table

@@ -27,7 +27,7 @@ db = SQLAlchemy(app)
 def get_current_post_month():
     setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
     date_str = setting.setting_value if setting  else "2026-05-01"
-    return datetime.strptime(date_str, '%Y-%m-%d')
+    return datetime.strptime(date_str, '%Y-%m-%d').date()
 
 @app.context_processor
 def inject_post_month():
@@ -56,126 +56,133 @@ def clean_val(val):
 
 @app.route('/')
 def home_page():
-    return render_template('home.html')
+    return render_template('home.html',
+                           title="Home")
 
-@app.route('/tool1')
-def tool1():
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('q', '')
-
-    market_val = request.args.get('market_filter')
-    mgmt_val = request.args.get('mgmt_filter')
-    bc_val = request.args.get('bc_filter')
-
-    query = Home.query
-    query = apply_search(query, Home, search_query)
-    if bc_val:
-        query = query.filter(Home.bc_assignee == bc_val)
-    if market_val:
-        query = query.filter(Home.market == market_val)
-    if mgmt_val:
-        query = query.filter(Home.mgmt_co_id == mgmt_val)
-
-    pagination = query.paginate(page=page, per_page=2000, error_out=False)
-    homes = pagination.items
-
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
+@app.route('/workspace')
+def workspace():
+    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
+    states = sorted([r.state for r in db.session.query(Home.state).distinct().all() if r.state])
     companies = ManagementCompanies.query.all()
-    bcs = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
+    bc_list = TeamRegister.query.filter(TeamRegister.role == "Billing Coordinator").all()
 
-    return render_template('tool1.html', 
-                           homes=homes, 
-                           pagination=pagination,
+    return render_template('workspace.html',
+                           title="Workspace", 
+                           states=states,
                            markets=markets, 
                            companies=companies,
-                           bcs=bcs,
-                           active_market=market_val,
-                           active_mgmt=mgmt_val,
-                           active_bc=bc_val)
+                           bc_list=bc_list)
 
-@app.route('/expanded_view')
-def expanded_view():
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('q', '')
-    market_val = request.args.get('market_filter')
-    mgmt_val = request.args.get('mgmt_filter')
-
-    current_user = "awhitehead@conservice.com"
+@app.route('/workspace/update_monthly_data', methods=['POST'])
+def update_monthly_data():
+    data = request.get_json()
+    res_ids = data.get('res_id', [])
     current_month = get_current_post_month()
 
-    query = Home.query
-    query = query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
-    query = query.outerjoin(Resident, Home.home_id == Resident.home_id)
-    query = query.outerjoin(Leases, Resident.lease_id == Leases.lease_id)
-    query = query.outerjoin(MonthlyData, 
-                            (Resident.resident_id == MonthlyData.resident_id) & 
-                            (MonthlyData.post_month == current_month))
-    query = query.options(
-        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
-        contains_eager(Home.residents).contains_eager(Resident.lease),
-        joinedload(Home.mrkt_rls))
-    
-    query = apply_search(query, Home, search_query)
+    for r_id in res_ids:
+        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
+        
+        if not monthly:
+            monthly = MonthlyData(resident_id=r_id, post_month=current_month)
+            db.session.add(monthly)
+
+        if monthly:
+            if data.get('status'):
+                monthly.status = data['status']
+            if data.get('quick_note'):
+                timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
+                new_quick_note_body = data['quick_note']
+            
+                formatted_quick_note = f"{timestamp} {new_quick_note_body}"
+
+                if data.get('append_quick_note') is True:
+                    existing_quick_note = monthly.quick_note if monthly.quick_note else ""
+                    if existing_quick_note:
+                        monthly.quick_note = f"{existing_quick_note}\n{formatted_quick_note}"
+                    else:
+                        monthly.quick_note = formatted_quick_note
+                else:
+                    monthly.quick_note = formatted_quick_note
+            if data.get('billing_note'):
+                timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
+                new_billing_note_body = data['billing_note']
+            
+                formatted_billing_note = f"{timestamp} {new_billing_note_body}"
+
+                if data.get('append_billing_note') is True:
+                    existing_billing_note = monthly.billing_note if monthly.billing_note else ""
+                    if existing_billing_note:
+                        monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
+                    else:
+                        monthly.billing_note = formatted_billing_note
+                else:
+                    monthly.billing_note = formatted_billing_note
+            billed_val = data.get('billed_by')
+            if billed_val == "null":
+                monthly.billed_by = None
+            elif billed_val and billed_val != "none":
+                if str(billed_val).isdigit():
+                    monthly.billed_by = int(billed_val)
+            if data.get('action_note') in ['true', 'false']:
+                monthly.action_note = (data['action_note'] == 'true')
+
+    db.session.commit()
+    return jsonify({"status": "success"}), 200
+            
+@app.route('/api/monthly_records')
+def get_monthly_records():
+    current_month = get_current_post_month()
+    current_user = "awhitehead@conservice.com"
+    market_val = request.args.get('market')
+    mgmt_val = request.args.get('mgmt')
+    state_val = request.args.get('state')
+
+
+    query = Home.query.options(
+        joinedload(Home.residents).joinedload(Resident.monthly_info),
+        joinedload(Home.residents).joinedload(Resident.lease)
+    ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+
     query = query.filter(TeamRegister.email == current_user)
 
-    if market_val:
+    if market_val and market_val != "":
         query = query.filter(Home.market == market_val)
-    if mgmt_val:
-        query = query.filter(Home.mgmt_co_id == mgmt_val)
+    if mgmt_val and mgmt_val != "":
+        query = query.filter(Home.mgmt_co_id == int(mgmt_val))
+    if state_val and state_val != "":
+        query = query.filter(Home.state == state_val)
 
-    pagination = query.paginate(page=page, per_page=500, error_out=False)
-    homes = pagination.items
 
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
-    companies = ManagementCompanies.query.all()
+    homes = query.all()
 
-    return render_template('expanded_view.html', 
-                           homes=homes, 
-                           pagination=pagination,
-                           markets=markets, 
-                           companies=companies,
-                           active_market=market_val,
-                           active_mgmt=mgmt_val,
-                           active_bc=current_user)
+    output = []
+    for h in homes:
+        res = h.residents[0] if h.residents else None
+        m_info = next((m for m in res.monthly_info if m.post_month == current_month), None) if res else None
+
+        output.append({
+            "resident_id": res.resident_id if res else None,
+            "bc_assignee": h.bc_user.nickname if h.bc_user else "Unassigned",
+            "home_code": h.prop_code,
+            "resident_code": res.resident_code if res else None,
+            "status": m_info.status if m_info else "-",
+            "quick_note": m_info.quick_note if m_info else "-",
+            "billing_note": m_info.billing_note if m_info else "-",
+            "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
+            "move_in": res.move_in if res else "-",
+            "renewal": res.renewal if res else "-",
+            "admin_notes": res.admin_notes if res else "-",
+            "market": h.market or "-",
+            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
+            "state": h.state,
+        })
+
+    return jsonify(output)
 
 @app.route('/get_lease_details/<int:lease_id>')
 def get_lease_details(lease_id):
     lease = Leases.query.get(lease_id)
     return render_template('partials/lease_details.html', lease=lease)
-
-@app.route('/my_homes')
-def my_homes():
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('q', '')
-
-    market_val = request.args.get('market_filter')
-    mgmt_val = request.args.get('mgmt_filter')
-    current_user = "awhitehead@conservice.com"
-
-    query = Home.query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
-
-    query = apply_search(query, Home, search_query)
-    query = query.filter(TeamRegister.email == current_user)
-
-    if market_val:
-        query = query.filter(Home.market == market_val)
-    if mgmt_val:
-        query = query.filter(Home.mgmt_co_id == mgmt_val)
-
-    pagination = query.paginate(page=page, per_page=2000, error_out=False)
-    homes = pagination.items
-
-    markets = [r.market for r in db.session.query(Home.market).distinct().all() if r.market]
-    companies = ManagementCompanies.query.all()
-
-    return render_template('my_homes.html', 
-                           homes=homes, 
-                           pagination=pagination,
-                           markets=markets, 
-                           companies=companies,
-                           active_market=market_val,
-                           active_mgmt=mgmt_val,
-                           active_bc=current_user)
 
 @app.route('/billing_summary')
 def billing_summary():
@@ -210,7 +217,8 @@ def billing_summary():
             MonthlyData.status, func.count(MonthlyData.monthly_id)
             ).filter(MonthlyData.post_month == selected_date).group_by(MonthlyData.status).all()
 
-    return render_template('billing_summary.html', 
+    return render_template('billing_summary.html',
+                           title="Billing Summary",
                            billing_records=billing_records,
                            pagination=pagination,
                            date_list=date_list, 
@@ -357,11 +365,11 @@ def imports():
         flash("File imported successfully!", "success")
         return redirect(url_for('imports'))
 
-    return render_template('imports.html')
+    return render_template('imports.html', title="Imports")
 
 @app.route('/leadership_tools', methods=['GET','POST'])
 def leadership_tools():
-    return render_template('leadership_tools.html')
+    return render_template('leadership_tools.html', title="Leadership Tools")
 
 @app.route('/run_monthly_reset', methods=['POST'])
 def run_monthly_reset():
@@ -422,6 +430,7 @@ def table_view():
     records = pagination.items
 
     return render_template('table_view.html', 
+                           title="Table View",
                            columns=columns, 
                            records=records, 
                            pagination=pagination, 
@@ -481,6 +490,7 @@ def progress_report():
         'missing_market': Home.query.filter(Home.market == None).count()
     }
     return render_template('progress_report.html', 
+                           title="Progress Report",
                            stats=stats,
                            integrity=integrity,
                            bc_performance=bc_performance,
@@ -588,10 +598,29 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
+    quick_note = db.Column(db.String(255))
     post_month = db.Column(db.Date)
-    status = db.Column(db.Enum('New','Approved','QC Complete','Mailed'))
+    status = db.Column(db.String(255))
+    billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
 
+    billed_by_user = db.relationship('TeamRegister', backref='monthly_data', lazy=True)
     utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
+
+    def to_dict(self):
+        return {
+            "resident_id": self.resident_id,
+            "rollout": self.rollout,
+            "action_note": self.action_note,
+            "billing_note": self.billing_note,
+            "quick_note": self.quick_note,
+            "post_month": self.post_month,
+            "status": self.status,
+            "billed_by": self.billed_by_user.nickname if self.billed_by_user else "-",
+            "home_code": self.resident.home.prop_code,
+            "bc_assignee": self.resident.home.bc_user.nickname if self.resident.home.bc_user else "unassigned",
+            "bm_assignee": self.resident.home.bm_user.nickname if self.resident.home.bm_user else "unassigned",
+            "qc_assignee": self.resident.home.qc_user.nickname if self.resident.home.qc_user else "unassigned"
+        }
 
 class Utilities(db.Model):
     __tablename__ = 'Utilities'
@@ -626,6 +655,7 @@ def get_data():
         'current_page': pagination.page,
         'total_items': pagination.total
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
