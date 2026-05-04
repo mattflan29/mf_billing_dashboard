@@ -107,7 +107,7 @@
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-billing-note-checkbox">
-            <label for="append-billing-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+            <label for="append-billing-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
                 replace)</label>
         </div>
         <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
@@ -115,7 +115,7 @@
         <label for="">Quick Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note-checkbox" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
                 replace)</label>
         </div>
         <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
@@ -137,7 +137,7 @@
             <option>Never Billing - See Notes</option>
             <option>Moved Out</option>
         </select>
-        <button type="submit" onclick="submitBatchUpdate()"
+        <button type="button" onclick="submitBatchUpdate()"
             style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </div>
 </div>

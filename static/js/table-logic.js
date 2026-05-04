@@ -2,6 +2,7 @@ let gridApi;
 
 // table logic
 const workspaceColumnData = [
+    { field: "resident_id", headerName: "Resident ID", hide: true },
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true },
     { field: "home_code", headerName: "Prop Code", filter: true, sortable: true },
     { field: "market", headerName: "Market", filter: true, sortable: true },
@@ -31,9 +32,12 @@ const workspaceColumnData = [
             return dateA - dateB;
         }, filter: true, sortable: true },
     { field: "lease_id", headerName: "Lease ID", filter: true, sortable: true},
-    { field: "admin_notes", headerName:"Admin Notes", filter: true, sortable: true },
-    { field: "quick_note", headerName: "Quick Note", filter: true, sortable: true },
-    { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true },
+    { field: "admin_notes", headerName:"Admin Notes", 
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+    { field: "quick_note", headerName: "Quick Note", 
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+    { field: "billing_note", headerName: "Billing Note", 
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
 ];
 const workspaceGridOptions = {
@@ -118,6 +122,7 @@ async function submitBatchUpdate() {
             alert("Updated successfully");
             containerOff();
             refreshGridData();
+            console.log(payload);
         } else {
             alert("Error updating");
         }
@@ -125,6 +130,7 @@ async function submitBatchUpdate() {
         console.error("Error:", err);
     }
 }
+window.submitBatchUpdate = submitBatchUpdate;
 function copySelectedToClipboard(btn) {
     const selectedRows = gridApi.getSelectedRows();
 
