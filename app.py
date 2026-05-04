@@ -144,6 +144,7 @@ def get_monthly_records():
     ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
 
     query = query.filter(TeamRegister.email == current_user)
+    query = query.filter(Home.residents != None)
 
     if market_val and market_val != "":
         query = query.filter(Home.market == market_val)

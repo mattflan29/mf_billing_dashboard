@@ -47,7 +47,7 @@ const workspaceGridOptions = {
         mode: 'multiRow',
         headerCheckbox: true,
         checkboxes: true,
-        enableClickSelection: true
+        enableClickSelection: false
     },
     autoSizeStrategy: {
         type: 'fitGridWidth'
@@ -122,7 +122,6 @@ async function submitBatchUpdate() {
             alert("Updated successfully");
             containerOff();
             refreshGridData();
-            console.log(payload);
         } else {
             alert("Error updating");
         }

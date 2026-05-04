@@ -456,3 +456,15 @@ input[type="checkbox"] {
 .ag-paging-panel {
     justify-content: flex-start !important;
 }
+.ag-cell-value {
+    display: flex !important;
+    line-height: 20px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    align-items: center !important;
+}
+.ag-cell.ag-cell-not-inline-editing.ag-cell-normal-height.ag-column-first {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
