@@ -4,7 +4,6 @@
 {% block content %}
 
 <html>
-<h2>Workspace</h2>
 
 <div style="display: flex; justify-content: space-between; margin: 1%">
     <div style="display: flex;">
@@ -56,13 +55,12 @@
 </div>
 
 
-<div>
+<div id="form-open">
     <button id="libraryBtnExpansion" onclick="showLibraryButtons()">+</button>
-    <div id="form-open">
-        <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
-        <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
-        <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
-    </div>
+    <button id="libraryBtnClose" onclick="closeLibraryButtons()">-</button>
+    <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
+    <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
+    <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
 </div>
 
 <div id="market-rules-expand">

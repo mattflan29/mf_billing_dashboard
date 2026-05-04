@@ -13,7 +13,7 @@ h1 {
 #pm {
     padding: 0;
 }
-h2 {
+.page-title-header {
     margin: 10px 0 10px 0;
 }
 body {
@@ -352,7 +352,7 @@ td {
     right: 20px;
     z-index: 1000;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     align-items: flex-end;
 
     button {
@@ -366,6 +366,27 @@ td {
         font-weight: bold;
         position: relative;
     }  
+
+    #libraryBtnClose {
+        display: none;
+        position: absolute;
+        z-index: 1001;
+    }
+
+    #libraryBtnExpansion, #libraryBtnClose {
+        z-index: 1000;
+        align-items: flex-end;
+        margin-bottom: 10px;
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-weight: bold;
+        height: 7vh;
+        width: 7vh;
+}
 }
 
 #open-lease-rules button, #open-market-rules button {
@@ -387,23 +408,7 @@ td {
 #leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn {
     display:none;
 }
-#libraryBtnExpansion {
-    position: fixed !important;
-    bottom: 20px !important;
-    right: 20px !important;
-    z-index: 1000;
-    align-items: flex-end;
-    margin-bottom: 10px;
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    font-weight: bold;
-    height: 7vh;
-    width: 7vh;
-}
+
 input[type="checkbox"] {
     padding: 2px;
     
@@ -422,6 +427,7 @@ input[type="checkbox"] {
     max-width: 300px;
     text-wrap-mode: wrap;
 }
+/* ag grid theme overrides */
 .ag-theme-quartz-dark {
     --ag-background-color: #ffffff2f !important;
     --ag-header-background-color: #ffffffb6 !important;
@@ -432,6 +438,10 @@ input[type="checkbox"] {
     --ag-border-color: #000000 !important;
     --ag-row-hover-color: #5c5c99c2 !important;
     --ag-selected-row-parent-background-color: #000000 !important;
+
+    .ag-popup-child, .ag-filter-menu {
+        background-color: #f3f3ff !important;
+    }
 }
 
 .ag-center-cols-container, .ag-center-cols-container, 
@@ -443,4 +453,7 @@ input[type="checkbox"] {
 #workspaceGrid {
     height: 75vh;
     width: 100%;
+}
+.ag-paging-panel {
+    justify-content: flex-start !important;
 }

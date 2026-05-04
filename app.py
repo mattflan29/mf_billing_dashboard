@@ -56,7 +56,8 @@ def clean_val(val):
 
 @app.route('/')
 def home_page():
-    return render_template('home.html')
+    return render_template('home.html',
+                           title="Home")
 
 @app.route('/tool1')
 def tool1():
@@ -84,6 +85,7 @@ def tool1():
     bcs = TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()
 
     return render_template('tool1.html', 
+                           title="BC View",
                            homes=homes, 
                            pagination=pagination,
                            markets=markets, 
@@ -130,6 +132,7 @@ def expanded_view():
     companies = ManagementCompanies.query.all()
 
     return render_template('expanded_view.html', 
+                           title="Expanded View",
                            homes=homes, 
                            pagination=pagination,
                            markets=markets, 
@@ -145,7 +148,8 @@ def workspace():
     companies = ManagementCompanies.query.all()
     bc_list = TeamRegister.query.filter(TeamRegister.role == "Billing Coordinator").all()
 
-    return render_template('workspace.html', 
+    return render_template('workspace.html',
+                           title="Workspace", 
                            states=states,
                            markets=markets, 
                            companies=companies,
@@ -239,7 +243,8 @@ def my_homes():
     markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
     companies = ManagementCompanies.query.all()
 
-    return render_template('my_homes.html', 
+    return render_template('my_homes.html',
+                           title="My Homes",
                            homes=homes, 
                            pagination=pagination,
                            markets=markets, 
@@ -281,7 +286,8 @@ def billing_summary():
             MonthlyData.status, func.count(MonthlyData.monthly_id)
             ).filter(MonthlyData.post_month == selected_date).group_by(MonthlyData.status).all()
 
-    return render_template('billing_summary.html', 
+    return render_template('billing_summary.html',
+                           title="Billing Summary",
                            billing_records=billing_records,
                            pagination=pagination,
                            date_list=date_list, 
@@ -428,11 +434,11 @@ def imports():
         flash("File imported successfully!", "success")
         return redirect(url_for('imports'))
 
-    return render_template('imports.html')
+    return render_template('imports.html', title="Imports")
 
 @app.route('/leadership_tools', methods=['GET','POST'])
 def leadership_tools():
-    return render_template('leadership_tools.html')
+    return render_template('leadership_tools.html', title="Leadership Tools")
 
 @app.route('/run_monthly_reset', methods=['POST'])
 def run_monthly_reset():
@@ -493,6 +499,7 @@ def table_view():
     records = pagination.items
 
     return render_template('table_view.html', 
+                           title="Table View",
                            columns=columns, 
                            records=records, 
                            pagination=pagination, 
@@ -552,6 +559,7 @@ def progress_report():
         'missing_market': Home.query.filter(Home.market == None).count()
     }
     return render_template('progress_report.html', 
+                           title="Progress Report",
                            stats=stats,
                            integrity=integrity,
                            bc_performance=bc_performance,
@@ -720,7 +728,7 @@ def get_data():
 @app.route('/api/monthly_records')
 def get_monthly_records():
     current_month = get_current_post_month()
-    current_user = "awhitehead@conservice.com"
+    #current_user = "awhitehead@conservice.com"
     market_val = request.args.get('market')
     mgmt_val = request.args.get('mgmt')
     state_val = request.args.get('state')
@@ -731,7 +739,7 @@ def get_monthly_records():
         joinedload(Home.residents).joinedload(Resident.lease)
     ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
 
-    query = query.filter(TeamRegister.email == current_user)
+    #query = query.filter(TeamRegister.email == current_user)
 
     if market_val and market_val != "":
         query = query.filter(Home.market == market_val)

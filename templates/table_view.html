@@ -3,8 +3,6 @@
 
 {% block content %}
 
-<h2>Table View</h2>
-
 <form method="GET" action="{{ url_for('table_view') }}" style="margin-bottom: 20px;">
     <label>Select Table:</label>
     <select name="table" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px;">

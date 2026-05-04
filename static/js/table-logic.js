@@ -1,4 +1,6 @@
 let gridApi;
+
+// table logic
 const workspaceColumnData = [
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true },
     { field: "home_code", headerName: "Prop Code", filter: true, sortable: true },
@@ -65,6 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     refreshGridData();
 });
+// end table logic
+
 function refreshGridData(e) {
     if (e) e.preventDefault();
 
@@ -146,6 +150,7 @@ function debouncedSearch(val) {
         gridApi.setGridOption('quickFilterText', val);
     }
 }
+// not sure if this is needed yet
 function openSidePanel(id) {
     console.log("Opening panel for resident:", id);
 }
@@ -154,13 +159,7 @@ function showSuccess(btn) {
     btn.textContent = "Copied!";
     setTimeout(() => { btn.textContent = originalText; }, 2000);
 }
-function containerOff() {
-    document.getElementById("form-overlay").style.display = "none";
-    document.getElementById("market-rules-expand").style.display = "none";
-    document.getElementById("lease-rules-expand").style.display = "none";
-    document.getElementById("close-box-window").style.display = "none";
-    closeLibraryButtons();
-}
+
 //menu bar
 function openNav() {
     document.getElementById("mySidebar").style.width = "250px";
@@ -170,6 +169,28 @@ function closeNav() {
     document.getElementById("mySidebar").style.width = "0";
     document.getElementById("main").style.marginLeft = "0";
 }
+const dropdown = document.getElementsByClassName("dropdown-btn");
+
+for (let i = 0; i < dropdown.length; i++) {
+    dropdown[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        const dropdownContent = this.nextElementSibling;
+        dropdownContent.style.display = (dropdownContent.style.display === "block") ? "none" : "block";
+    });
+}
+
+window.addEventListener('click', function(e) {
+    const sidebar = document.getElementById("mySidebar");
+    const openBtn = document.querySelector(".openbtn");
+
+  if (!sidebar.contains(e.target) && !openBtn.contains(e.target)) {
+    if (sidebar.style.width === "250px") {
+      closeNav();
+    }
+  }
+});
+//end menu bar
+
 function leaseRulesOn() {
     const leases = {};
     document.querySelectorAll('.main-row').forEach(row => {
@@ -257,7 +278,7 @@ function marketRulesOn() {
 
     const tabContainer = document.getElementById('market-tabs-container');
     tabContainer.innerHTML = '';
-
+    
     Object.keys(markets).sort().forEach(market => {
         const btn = document.createElement('button');
         btn.innerText = market;
@@ -266,7 +287,7 @@ function marketRulesOn() {
         btn.onclick = () => showMarketDetails(market, markets[market]);
         tabContainer.appendChild(btn);
     });
-
+    
     document.getElementById("market-rules-expand").style.display = "block";
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
@@ -280,17 +301,57 @@ function showMarketDetails (market, data) {
         <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
     `;
 }
+function containerOff() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("close-box-window").style.display = "none";
+    closeLibraryButtons();
+}
 function showLibraryButtons() {
     document.getElementById("leaseRulesBtn").style.display = "block";
     document.getElementById("marketRulesBtn").style.display = "block";
     document.getElementById("formSubmissionBtn").style.display = "block";
     document.getElementById("close-library-buttons").style.display = "block";
-    document.getElementById("libraryBtnExpansion").style.display = "none";
+    document.getElementById("libraryBtnClose").style.display = "block";
 }
 function closeLibraryButtons() {
     document.getElementById("leaseRulesBtn").style.display = "none";
     document.getElementById("marketRulesBtn").style.display = "none";
     document.getElementById("formSubmissionBtn").style.display = "none";
     document.getElementById("close-library-buttons").style.display = "none";
-    document.getElementById("libraryBtnExpansion").style.display = "block";
+    document.getElementById("libraryBtnClose").style.display = "none";
+
+}
+
+//maybe unnecessary
+    //select all checkbox logic
+function toggleAll(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.record-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = masterCheckbox.checked;
+        });
+    }
+
+function handleShiftClick(e) {
+    let inBetween = false;
+    if (e.shiftKey && lastChecked && lastChecked !== this) {
+        const checkboxes = Array.from(document.querySelectorAll('.record-checkbox'));
+        checkboxes.forEach(cb => {
+            if (cb === this || cb === lastChecked) {
+                inBetween = !inBetween;
+            }
+            if (inBetween) {
+                cb.checked = this.checked;
+            }
+        });
+    }
+    lastChecked = this;
+}
+
+function clearSearch() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('q');
+    url.searchParams.set('page', 1);
+    window.location.href = url.href;
 }
