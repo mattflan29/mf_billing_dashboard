@@ -24,7 +24,7 @@
         <button class="openbtn" onclick="openNav()">&#9776; Menu</button>
         <h2 class="page-title-header">{{ title }}</h2>
         <div style="margin-top: auto; margin-bottom: auto;">
-            <input type="textarea" id="global-search" placeholder="Search Prop Code" value="{{ request.args.get('q', '')}}"
+            <input type="textarea" id="global-search" placeholder="Not Working ATM" value="{{ request.args.get('q', '')}}"
                 oninput="debouncedSearch(this.value)">
             {% if request.args.get('q') %}
             <span onclick="clearSearch()"

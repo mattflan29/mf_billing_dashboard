@@ -7,7 +7,7 @@
     <h1>Portfolio Status: {{ current_month }}</h1>
     <hr>
 
-    <table style="width: 100%; border-collapse: collapse;">
+    <table style="width: 50%; border-collapse: collapse;">
         <thead>
             <tr>
                 <th>Total Homes</th>
@@ -16,7 +16,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
+            <tr style="text-align: center;">
                 <td>{{ stats.total }}</td>
                 <td>{{ stats.get('Mailed', 0) }}</td>
                 <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
@@ -24,37 +24,7 @@
         </tbody>
     </table>
 
-    <div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Mgmt Co</th>
-                    <th>State</th>
-                    <th>New</th>
-                    <th>Approved</th>
-                    <th>QC Complete</th>
-                    <th>Mailed</th>
-                    <th>Total</th>
-                    <th>% Done</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in state_breakdown %}
-                {% set percent = (row.mailed / row.total * 100)|round(1) if row.total > 0 else 0 %}
-                <tr>
-                    <td>{{ row.mgmt_nickname }}</td>
-                    <td>{{ row.state }}</td>
-                    <td>{{ row.new }}</td>
-                    <td>{{ row.approved }}</td>
-                    <td>{{ row.qc_complete }}</td>
-                    <td>{{ row.mailed }}</td>
-                    <td>{{ row.total }}</td>
-                    <td>{{ percent }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <div id="progressReportGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
 
     <div style="display: flex; gap: 20px;">
         <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">

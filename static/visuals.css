@@ -21,16 +21,14 @@ body {
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #ccccff;
-
-    div {
+}
+div {
     margin: 1%;
     margin-top: 0px;
     margin-bottom: 0px;
     padding-top: 0px;
     padding-bottom: 0px;
-    }
 }
-
 .button-format {
     background-color: #007bff; 
     color: white; 
@@ -364,6 +362,8 @@ td {
         cursor: pointer;
         font-weight: bold;
         position: relative;
+        border-style: groove;
+        border-color: black;
     }  
 
     #libraryBtnClose {
@@ -385,6 +385,8 @@ td {
         font-weight: bold;
         height: 7vh;
         width: 7vh;
+        border-style: groove;
+        border-color: black;
 }
 }
 
@@ -448,8 +450,10 @@ input[type="checkbox"] {
 .ag-header-container, .ag-header, .ag-header-row, .ag-row-even, .ag-row-odd, .ag-body-vertical-scroll {
     margin: 0;
 }
-
-#workspaceGrid {
+ag-body-viewport.ag-layout-normal.ag-row-animation {
+    margin: 0 !important;
+}
+#workspaceGrid, #progressReportGrid {
     height: 75vh;
     width: 100%;
 }
@@ -458,13 +462,91 @@ input[type="checkbox"] {
 }
 .ag-cell-value {
     display: flex !important;
-    line-height: 20px !important;
+    line-height: 15px !important;
     padding-top: 5px !important;
     padding-bottom: 5px !important;
     align-items: center !important;
+}
+.ag-cell-value, .ag-header-cell, 
+.ag-cell.ag-cell-not-inline-editing.ag-cell-auto-height {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
 }
 .ag-cell.ag-cell-not-inline-editing.ag-cell-normal-height.ag-column-first {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
 }
+.ag-header-cell.ag-column-first.ag-focus-managed {
+    margin: 0 !important;
+    padding-left: 0 !important;
+}
+.ag-icon.ag-icon-filter {
+    --ag-icon-size: 8px !important;
+}
+.ag-column-last {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+}
+/* utility column values */
+.utility-false {
+    background-color: #f5b1b7;  
+}
+.utility-true {
+    background-color: #b6e9c2;
+}
+.utility-nb {
+    background-color: #f0dd75;
+}
+.utility-summ {
+    background-color: #95b8d1;
+}
+.utility-vac {
+    background-color: #d1d1d1;
+}
+.utility-cb {
+    background-color: #f0a6c2;
+}
+.utility-bnv {
+    background-color: #f0caa6;
+}
+.utility-dnb {
+    background-color: #f0a6c2;
+}
+/* ag grid utility headers */
+.utility-header {
+    border-radius: 5px;
+}
+.utility-header.water {
+    background-color: #77b8e6;
+}
+.utility-header.sewer {
+    background-color: #9ebd6c;
+}
+.utility-header.trash {
+    background-color: #b09e5e;
+}
+.utility-header.electric {
+    background-color: #cbab3a;
+}
+.utility-header.gas {
+    background-color: #d18f3e;
+}
+.utility-header.base {
+    background-color: #aa95d1;
+}
+.utility-header.sw {
+    background-color: #777ebb;
+}
+
+.ag-row:hover, .ag-row-selected{
+    .utility-bnv, .utility-cb, .utility-dnb, .utility-false,
+    .utility-true, .utility-nb, .utility-summ, .utility-vac {
+        filter: saturate(1.5) brightness(.7);
+    }
+}
+

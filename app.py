@@ -138,10 +138,14 @@ def get_monthly_records():
     state_val = request.args.get('state')
 
 
-    query = Home.query.options(
-        joinedload(Home.residents).joinedload(Resident.monthly_info),
-        joinedload(Home.residents).joinedload(Resident.lease)
-    ).join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)
+    query = Home.query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, Home.home_id == Resident.home_id)\
+        .join(Leases, Resident.lease_id == Leases.lease_id)\
+        .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+    .options(
+        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
+        contains_eager(Home.residents).contains_eager(Resident.lease)
+    )
 
     query = query.filter(TeamRegister.email == current_user)
     query = query.filter(Home.residents != None)
@@ -160,22 +164,51 @@ def get_monthly_records():
     for h in homes:
         res = h.residents[0] if h.residents else None
         m_info = next((m for m in res.monthly_info if m.post_month == current_month), None) if res else None
+        l = res.lease if (res and res.lease) else None
 
         output.append({
-            "resident_id": res.resident_id if res else None,
             "bc_assignee": h.bc_user.nickname if h.bc_user else "Unassigned",
             "home_code": h.prop_code,
-            "resident_code": res.resident_code if res else None,
+            "market": h.market or "-",
+            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
+            "state": h.state,
             "status": m_info.status if m_info else "-",
             "quick_note": m_info.quick_note if m_info else "-",
             "billing_note": m_info.billing_note if m_info else "-",
+            "water": m_info.water if m_info else "-",
+            "water2": m_info.water2 if m_info else "-",
+            "sewer": m_info.sewer if m_info else "-",
+            "sewer2": m_info.sewer2 if m_info else "-",
+            "trash": m_info.trash if m_info else "-",
+            "trash5": m_info.trash5 if m_info else "-",
+            "electric": m_info.electric if m_info else "-",
+            "electric2": m_info.electric2 if m_info else "-",
+            "gas": m_info.gas if m_info else "-",
+            "gas2_propane": m_info.gas2_propane if m_info else "-",
+            "irrigation": m_info.irrigation if m_info else "-",
+            "base_basic": m_info.base_basic if m_info else "-",
+            "stormwater": m_info.stormwater if m_info else "-",
+            "resident_code": res.resident_code if res else None,
+            "resident_id": res.resident_id if res else None,
             "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
             "move_in": res.move_in if res else "-",
             "renewal": res.renewal if res else "-",
             "admin_notes": res.admin_notes if res else "-",
-            "market": h.market or "-",
-            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
-            "state": h.state,
+            "lease_states": l.states if l else "-",
+            "lease_intro": l.intro if l else "-",
+            "lease_retirement": l.retirement if l else "-",
+            "lease_renewal": l.renewal if l else "-",
+            "lease_required_utilities": l.required_utilities if l else "-",
+            "lease_switchable_utilities": l.switchable_utilities if l else "-",
+            "lease_vacant_utilities": l.vacant_utilities if l else "-",
+            "lease_service_fee": str(l.service_fee) if l and l.service_fee is not None else "-",
+            "lease_renewal_fee": str(l.renewal_fee) if l and l.renewal_fee is not None else "-",
+            "lease_setup_fee": str(l.setup_fee) if l and l.setup_fee is not None else "-",
+            "lease_move_out_fee": str(l.move_out_fee) if l and l.move_out_fee is not None else "-",
+            "lease_vsf": str(l.vacant_service_fee) if l and l.vacant_service_fee is not None else "-",
+            "lease_other_fees": l.other_fees if l else "-",
+            "lease_notes": l.lease_notes if l else "-",
+            "lease_grace_period": l.grace_period if l else "-"
         })
 
     return jsonify(output)
@@ -417,7 +450,6 @@ def table_view():
         'Management Companies': ManagementCompanies,
         'Market Rules': MarketRules,
         'System Settings': SystemSettings,
-        'Utilities': Utilities,
         'Monthly Data': MonthlyData
     }
     target = request.args.get('table', 'Homes')
@@ -457,21 +489,6 @@ def progress_report():
      #.filter(MonthlyData.post_month == current_month)\
      #.group_by(Home.market).all()
     
-    state_breakdown = db.session.query(
-        Home.state, 
-        ManagementCompanies.mgmt_nickname,
-
-        func.count(Home.home_id).label('total'),
-        func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
-        func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
-        func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
-        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed')
-    ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
-     .outerjoin(Resident, Home.home_id == Resident.home_id)\
-     .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
-     .filter(Home.state != None)\
-     .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
-     .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
 
     bc_performance = db.session.query(
         TeamRegister.nickname,
@@ -495,8 +512,41 @@ def progress_report():
                            stats=stats,
                            integrity=integrity,
                            bc_performance=bc_performance,
-                           state_breakdown=state_breakdown,
                            current_month=current_month.strftime('%B %Y'))
+
+@app.route('/api/progress_report')
+def get_progress_report():
+    current_month = get_current_post_month()
+
+    results = db.session.query(
+        Home.state, 
+        ManagementCompanies.mgmt_nickname,
+
+        func.count(Home.home_id).label('total'),
+        func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
+        func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
+        func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed')
+    ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+     .outerjoin(Resident, Home.home_id == Resident.home_id)\
+     .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+     .filter(Home.state != None)\
+     .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
+     .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
+
+    output = []
+    for r in results:
+        output.append({
+            "state": r.state,
+            "management_co": r.mgmt_nickname,
+            "total": r.total,
+            "new": r.new,
+            "approved": r.approved,
+            "qc_complete": r.qc_complete,
+            "mailed": r.mailed
+        })
+
+    return jsonify(output)
 
 # Tables
 class SystemSettings(db.Model):
@@ -603,9 +653,21 @@ class MonthlyData(db.Model):
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    water = db.Column(db.Integer)
+    water2 = db.Column(db.Integer)
+    sewer = db.Column(db.Integer)
+    sewer2 = db.Column(db.Integer)
+    trash = db.Column(db.Integer)
+    trash5 = db.Column(db.Integer)
+    electric = db.Column(db.Integer)
+    electric2 = db.Column(db.Integer)
+    gas = db.Column(db.Integer)
+    gas2_propane = db.Column(db.Integer)
+    irrigation = db.Column(db.Integer)
+    base_basic = db.Column(db.Integer)
+    stormwater = db.Column(db.Integer)
 
     billed_by_user = db.relationship('TeamRegister', backref='monthly_data', lazy=True)
-    utility_data = db.relationship('Utilities', backref='monthly_data', uselist=False)
 
     def to_dict(self):
         return {
@@ -622,23 +684,6 @@ class MonthlyData(db.Model):
             "bm_assignee": self.resident.home.bm_user.nickname if self.resident.home.bm_user else "unassigned",
             "qc_assignee": self.resident.home.qc_user.nickname if self.resident.home.qc_user else "unassigned"
         }
-
-class Utilities(db.Model):
-    __tablename__ = 'Utilities'
-    utilities_id = db.Column(db.Integer, primary_key=True)
-    monthly_id = db.Column(db.Integer, db.ForeignKey('MonthlyData.monthly_id'))
-    water = db.Column(db.Boolean)
-    sewer = db.Column(db.Boolean)
-    trash = db.Column(db.Boolean)
-    electric = db.Column(db.Boolean)
-    gas = db.Column(db.Boolean)
-    water2 = db.Column(db.Boolean)
-    sewer2 = db.Column(db.Boolean)
-    trash5 = db.Column(db.Boolean)
-    electric2 = db.Column(db.Boolean)
-    gas2 = db.Column(db.Boolean)
-    vacant_electric = db.Column(db.Boolean)
-    vacant_gas = db.Column(db.Boolean)
 
 @app.route('/api/data', methods=['GET'])
 def get_data():
