@@ -174,6 +174,13 @@ async function submitBatchUpdate() {
         alert("No records selected");
         return;
     }
+
+    const utilityUpdates = {};
+    document.querySelectorAll('.update-utility-note').forEach(select => {
+        if (select.value !== "") {
+            utilityUpdates[select.dataset.util] = select.value;
+        }
+    });
     
     const payload = {
         res_id: resIds,
@@ -183,7 +190,8 @@ async function submitBatchUpdate() {
         append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
         quick_note: document.getElementById('update-quick-note').value,
         append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
-        status: document.getElementById('update-status').value
+        status: document.getElementById('update-status').value,
+        utility_updates: utilityUpdates,
     };
 
     try {
@@ -197,6 +205,12 @@ async function submitBatchUpdate() {
             alert("Updated successfully");
             containerOff();
             refreshGridData();
+            document.querySelectorAll('input[name="utility-selector"]').forEach(cb => cb.checked = false);
+            document.getElementById('update-utility-note').value = '';
+            document.getElementById('update-action-note').value = '';
+            document.getElementById('update-billing-note').value = '';
+            document.getElementById('update-quick-note').value = '';
+            document.getElementById('update-status').value = '';
         } else {
             alert("Error updating");
         }

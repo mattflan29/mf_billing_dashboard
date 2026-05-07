@@ -100,6 +100,29 @@
             <option value="false">No</option>
         </select>
 
+        <label>Utility Update</label>
+        <details>
+            <summary>Advanced: Individual Overrides</summary>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px;">
+                {% for key, label in [('water','Water'), ('sewer','Sewer'), ('trash','Trash'), ('electric','Electric'), ('gas','Gas'), ('stormwater','Stormwater'), ('trash5','Trash5'), ('base_basic','Base'), ('water2','Water2'), ('sewer2','Sewer2'), ('electric2','Electric2'), ('gas2','Gas2')] %}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 2px;">
+                    <span style="font-size: 12px;">{{ label }}:</span>
+                    <select class="update-utility-note" data-util="{{ key }}" style="font-size: 11px;">
+                        <option value="">--</option>
+                        <option value="0">False</option>
+                        <option value="1">True</option>
+                        <option value="2">Not Billing</option>
+                        <option value="3">Summary</option>
+                        <option value="4">Vacant</option>
+                        <option value="5">Copy Bill</optison>
+                        <option value="6">Bundled/No VSF</option>
+                        <option value="7">DO NOT BILL</option>
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-billing-note-checkbox">

@@ -103,6 +103,7 @@ def update_monthly_data():
                         monthly.quick_note = formatted_quick_note
                 else:
                     monthly.quick_note = formatted_quick_note
+
             if data.get('billing_note'):
                 timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
                 new_billing_note_body = data['billing_note']
@@ -117,6 +118,7 @@ def update_monthly_data():
                         monthly.billing_note = formatted_billing_note
                 else:
                     monthly.billing_note = formatted_billing_note
+
             billed_val = data.get('billed_by')
             if billed_val == "null":
                 monthly.billed_by = None
@@ -125,6 +127,11 @@ def update_monthly_data():
                     monthly.billed_by = int(billed_val)
             if data.get('action_note') in ['true', 'false']:
                 monthly.action_note = (data['action_note'] == 'true')
+
+            utility_updates = data.get('utility_updates', {})
+            for utility, value in utility_updates.items():
+                if hasattr(monthly, utility):
+                    setattr(monthly, utility, int(value))
 
     db.session.commit()
     return jsonify({"status": "success"}), 200
@@ -175,19 +182,19 @@ def get_monthly_records():
             "status": m_info.status if m_info else "-",
             "quick_note": m_info.quick_note if m_info else "-",
             "billing_note": m_info.billing_note if m_info else "-",
-            "water": m_info.water if m_info else "-",
-            "water2": m_info.water2 if m_info else "-",
-            "sewer": m_info.sewer if m_info else "-",
-            "sewer2": m_info.sewer2 if m_info else "-",
-            "trash": m_info.trash if m_info else "-",
-            "trash5": m_info.trash5 if m_info else "-",
-            "electric": m_info.electric if m_info else "-",
-            "electric2": m_info.electric2 if m_info else "-",
-            "gas": m_info.gas if m_info else "-",
-            "gas2_propane": m_info.gas2_propane if m_info else "-",
-            "irrigation": m_info.irrigation if m_info else "-",
-            "base_basic": m_info.base_basic if m_info else "-",
-            "stormwater": m_info.stormwater if m_info else "-",
+            "water": m_info.water if m_info else "0",
+            "water2": m_info.water2 if m_info else "0",
+            "sewer": m_info.sewer if m_info else "0",
+            "sewer2": m_info.sewer2 if m_info else "0",
+            "trash": m_info.trash if m_info else "0",
+            "trash5": m_info.trash5 if m_info else "0",
+            "electric": m_info.electric if m_info else "0",
+            "electric2": m_info.electric2 if m_info else "0",
+            "gas": m_info.gas if m_info else "0",
+            "gas2_propane": m_info.gas2_propane if m_info else "0",
+            "irrigation": m_info.irrigation if m_info else "0",
+            "base_basic": m_info.base_basic if m_info else "0",
+            "stormwater": m_info.stormwater if m_info else "0",
             "resident_code": res.resident_code if res else None,
             "resident_id": res.resident_id if res else None,
             "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
