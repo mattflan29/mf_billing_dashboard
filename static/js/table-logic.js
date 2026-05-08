@@ -87,7 +87,6 @@ const workspaceGridOptions = {
     autoSizeStrategy: {
         type: 'fitGridWidth'
     },
-    suppressVerticalScroll: true,
     pagination: true,
     paginationPageSize: 10000,
     paginationPageSizeSelector: [1000, 2000, 5000, 10000],
@@ -206,12 +205,7 @@ async function submitBatchUpdate() {
             alert("Updated successfully");
             containerOff();
             refreshGridData();
-            document.querySelectorAll('input[name="utility-selector"]').forEach(cb => cb.checked = false);
-            document.getElementById('update-utility-note').value = '';
-            document.getElementById('update-action-note').value = '';
-            document.getElementById('update-billing-note').value = '';
-            document.getElementById('update-quick-note').value = '';
-            document.getElementById('update-status').value = '';
+            document.getElementById('submission-form').reset();
         } else {
             alert("Error updating");
         }

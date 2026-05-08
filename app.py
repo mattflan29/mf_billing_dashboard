@@ -23,6 +23,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+active_user = 112
+
 
 def get_current_post_month():
     setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
@@ -64,6 +66,8 @@ def workspace():
     current_month = get_current_post_month()
     current_user = "awhitehead@conservice.com"
 
+    billed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['Billing Coordinator'])).all()
+
     filtered_data = db.session.query(
         Home.market, Home.state, ManagementCompanies.id, ManagementCompanies.mgmt_co, MonthlyData.status)\
         .join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
@@ -94,7 +98,8 @@ def workspace():
                            states=states,
                            markets=markets, 
                            companies=companies,
-                           status=status)
+                           status=status,
+                           bc_list=billed_by_options)
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -112,6 +117,7 @@ def update_monthly_data():
         if monthly:
             if data.get('status'):
                 monthly.status = data['status']
+
             if data.get('quick_note'):
                 timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
                 new_quick_note_body = data['quick_note']
@@ -143,11 +149,14 @@ def update_monthly_data():
                     monthly.billing_note = formatted_billing_note
 
             billed_val = data.get('billed_by')
-            if billed_val == "null":
-                monthly.billed_by = None
-            elif billed_val and billed_val != "none":
+            if billed_val == "unassigned":
+                monthly.billed_by = 123456
+            if billed_val and billed_val != "none":
                 if str(billed_val).isdigit():
                     monthly.billed_by = int(billed_val)
+            if monthly.status == 'Approved' and monthly.status.startswith('Approved') and not monthly.billed_by:
+                monthly.billed_by = active_user
+
             if data.get('action_note') in ['true', 'false']:
                 monthly.action_note = (data['action_note'] == 'true')
 
@@ -526,10 +535,8 @@ def progress_report():
     bc_performance = db.session.query(
         TeamRegister.nickname,
         func.count(MonthlyData.monthly_id)
-    ).join(Home, TeamRegister.employee_id == Home.bc_assignee)\
-     .join(Resident, Home.home_id == Resident.home_id)\
-     .join(MonthlyData, Resident.resident_id == MonthlyData.resident_id)\
-     .filter(MonthlyData.post_month == current_month, MonthlyData.status == 'Mailed')\
+    ).join(MonthlyData, TeamRegister.employee_id == MonthlyData.billed_by)\
+     .filter(MonthlyData.post_month == current_month, MonthlyData.status.in_(['Approved', 'QC Complete', 'Mailed']))\
      .group_by(TeamRegister.nickname).all()
     
     integrity = {

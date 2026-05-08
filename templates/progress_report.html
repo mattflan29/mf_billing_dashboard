@@ -7,22 +7,27 @@
     <h1>Portfolio Status: {{ current_month }}</h1>
     <hr>
 
-    <table style="width: 50%; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th>Total Homes</th>
-                <th>Mailed</th>
-                <th>Remaining</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr style="text-align: center;">
-                <td>{{ stats.total }}</td>
-                <td>{{ stats.get('Mailed', 0) }}</td>
-                <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
-            </tr>
-        </tbody>
-    </table>
+    <div>
+        <table style="width: 50%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Total Homes</th>
+                    <th>Approved</th>
+                    <th>Mailed</th>
+                    <th>Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td>{{ stats.total }}</td>
+                    <td>{{ stats.get('Approved', 0) }}</td>
+                    <td>{{ stats.get('Mailed', 0) }}</td>
+                    <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <hr>
 
     <div id="progressReportGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
 
@@ -40,18 +45,28 @@
         </div>
     </div>
 
-    <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-        <h4>BC Completions</h4>
-        <table style="width: 100%; border-collapse: collapse;">
-            {% for name, count in bc_performance %}
-            <tr>
-                <td>{{ name }}</td>
-                <td>{{ count }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        <ul>
-
+    <div style="display: flex;">
+        <div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px; width: 30%;">
+            <h4>BC Completions</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+                {% for name, count in bc_performance %}
+                <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px; width: 30%;">
+            <h4>QC Completions</h4>
+            <table>
+                <tr>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
