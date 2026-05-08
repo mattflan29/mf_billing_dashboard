@@ -61,17 +61,40 @@ def home_page():
 
 @app.route('/workspace')
 def workspace():
-    markets = sorted([r.market for r in db.session.query(Home.market).distinct().all() if r.market])
-    states = sorted([r.state for r in db.session.query(Home.state).distinct().all() if r.state])
-    companies = ManagementCompanies.query.all()
-    bc_list = TeamRegister.query.filter(TeamRegister.role == "Billing Coordinator").all()
+    current_month = get_current_post_month()
+    current_user = "awhitehead@conservice.com"
+
+    filtered_data = db.session.query(
+        Home.market, Home.state, ManagementCompanies.id, ManagementCompanies.mgmt_co, MonthlyData.status)\
+        .join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
+        .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        .join(Resident, Home.home_id == Resident.home_id)\
+        .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+        .filter(TeamRegister.email == current_user, Home.residents != None).all()
+    
+    markets_set = set()
+    states_set = set()
+    mgmtco_dict = {}
+    status_set = set()
+
+    for market, state, co_id, co_name, status in filtered_data:
+        if market: markets_set.add(market)
+        if state: states_set.add(state)
+        if co_id: mgmtco_dict[co_id] = co_name
+        if status: status_set.add(status)
+
+    states = sorted(list(states_set))
+    markets = sorted(list(markets_set))
+    status = sorted(list(status_set))
+    companies = [{"id": co_id, "mgmt_co": co_name} for co_id, co_name in mgmtco_dict.items()]
+    companies = sorted(companies, key=lambda x: x['mgmt_co'])
 
     return render_template('workspace.html',
                            title="Workspace", 
                            states=states,
                            markets=markets, 
                            companies=companies,
-                           bc_list=bc_list)
+                           status=status)
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -143,6 +166,7 @@ def get_monthly_records():
     market_val = request.args.get('market')
     mgmt_val = request.args.get('mgmt')
     state_val = request.args.get('state')
+    status_val = request.args.get('status')
 
 
     query = Home.query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
@@ -163,6 +187,8 @@ def get_monthly_records():
         query = query.filter(Home.mgmt_co_id == int(mgmt_val))
     if state_val and state_val != "":
         query = query.filter(Home.state == state_val)
+    if status_val and status_val != "":
+        query = query.filter(MonthlyData.status == status_val)
 
 
     homes = query.all()

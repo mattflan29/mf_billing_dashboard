@@ -154,9 +154,10 @@ function refreshGridData(e) {
     const market = document.getElementById('market_filter').value;
     const mgmt = document.getElementById('mgmt_filter').value;
     const state = document.getElementById('state_filter').value;
+    const status = document.getElementById('status_filter').value;
     const search = document.getElementById('global-search').value;
 
-    const url = `/api/monthly_records?mgmt=${mgmt}&state=${state}&market=${market}&q=${search}`;
+    const url = `/api/monthly_records?mgmt=${mgmt}&state=${state}&market=${market}&status=${status}&q=${search}`;
 
     fetch(url)
         .then(res => res.json())

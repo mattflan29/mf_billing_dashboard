@@ -503,35 +503,42 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
 .utility-false {
     background-color: #f5b1b7;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-true {
     background-color: #b6e9c2;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-nb {
     background-color: #f0dd75;
     border-right: 1px solid #cccce5 !important;
-
+    justify-content: center !important;
 }
 .utility-summ {
     background-color: #95b8d1;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-vac {
     background-color: #d1d1d1;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-cb {
     background-color: #f0a6c2;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-bnv {
     background-color: #f0caa6;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 .utility-dnb {
     background-color: #f0a6c2;
     border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
 }
 /* ag grid utility headers */
 .utility-header {
