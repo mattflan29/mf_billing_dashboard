@@ -132,6 +132,14 @@
                 {% endfor %}
             </div>
         </details>
+        
+        <label for="">Quick Note:</label>
+        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
+            <input type="checkbox" id="append-quick-note-checkbox">
+            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
+                replace)</label>
+        </div>
+        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
 
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
@@ -140,14 +148,6 @@
                 replace)</label>
         </div>
         <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
-
-        <label for="">Quick Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                replace)</label>
-        </div>
-        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
 
         <label>Status:</label>
         <select id="update-status">

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import func, extract, desc, text, case
 from sqlalchemy.orm import joinedload, contains_eager
 from dotenv import load_dotenv
-import os, enum, pandas as pd, numpy as np, io, csv, re
+import os, enum, pandas as pd, numpy as np, io, csv, re, pytz
 
 load_dotenv()
 
@@ -23,6 +23,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+tz = pytz.timezone('US/Mountain')
 active_user = 112
 
 
@@ -119,7 +120,7 @@ def update_monthly_data():
                 monthly.status = data['status']
 
             if data.get('quick_note'):
-                timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
+                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
                 new_quick_note_body = data['quick_note']
             
                 formatted_quick_note = f"{timestamp} {new_quick_note_body}"
@@ -134,7 +135,7 @@ def update_monthly_data():
                     monthly.quick_note = formatted_quick_note
 
             if data.get('billing_note'):
-                timestamp = datetime.now().strftime("%m/%d/%y %I:%M %p")
+                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
                 new_billing_note_body = data['billing_note']
             
                 formatted_billing_note = f"{timestamp} {new_billing_note_body}"
