@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
-from sqlalchemy import func, extract, desc, text, case
+from sqlalchemy import func, extract, desc, text, case, insert, select
 from sqlalchemy.orm import joinedload, contains_eager
 from dotenv import load_dotenv
 import os, enum, pandas as pd, numpy as np, io, csv, re, pytz
@@ -16,7 +16,8 @@ TEAM_LEAD_PASS = os.getenv('TEAM_LEAD_PASS')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-CORS(app)
+#TODO: only allows cors for specified domain/route
+CORS(app)#, resources={r"/api/*": {"origins": "billing-dashboard.skwconservice.com"}})
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASS}@127.0.0.1:3306/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -68,13 +69,16 @@ def workspace():
     current_user = "awhitehead@conservice.com"
 
     billed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['Billing Coordinator'])).all()
-
+    qced_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['QC Specialist'])).all()
+    
     filtered_data = db.session.query(
         Home.market, Home.state, ManagementCompanies.id, ManagementCompanies.mgmt_co, MonthlyData.status)\
-        .join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
+        .select_from(MonthlyData)\
+        .where(MonthlyData.post_month == current_month)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
         .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
-        .join(Resident, Home.home_id == Resident.home_id)\
-        .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
         .filter(TeamRegister.email == current_user, Home.residents != None).all()
     
     markets_set = set()
@@ -100,7 +104,8 @@ def workspace():
                            markets=markets, 
                            companies=companies,
                            status=status,
-                           bc_list=billed_by_options)
+                           bc_list=billed_by_options,
+                           qc_list=qced_by_options)
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -155,11 +160,18 @@ def update_monthly_data():
             if billed_val and billed_val != "none":
                 if str(billed_val).isdigit():
                     monthly.billed_by = int(billed_val)
-            if monthly.status == 'Approved' and monthly.status.startswith('Approved') and not monthly.billed_by:
+            if monthly.status and monthly.status.startswith('Approved') and not monthly.billed_by:
                 monthly.billed_by = active_user
 
             if data.get('action_note') in ['true', 'false']:
                 monthly.action_note = (data['action_note'] == 'true')
+
+            qced_val = data.get('qced_by')
+            if qced_val and qced_val != "none":
+                if str(qced_val).isdigit():
+                    monthly.qced_by = int(qced_val)
+            if monthly.status and monthly.status in (['QC Complete', 'Rebill']) and not monthly.qced_by:
+                monthly.qced_by = active_user
 
             utility_updates = data.get('utility_updates', {})
             for utility, value in utility_updates.items():
@@ -169,6 +181,28 @@ def update_monthly_data():
     db.session.commit()
     return jsonify({"status": "success"}), 200
             
+@app.route('/workspace/update_billing_note', methods=['POST'])
+def update_billing_note():
+    data = request.get_json()
+    res_ids = data.get('res_id', [])
+    current_month = get_current_post_month()
+
+    for r_id in res_ids:
+        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
+        
+        if monthly:
+            if data.get('billing_note_update'):
+                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
+                updated_billing_note_body = data['billing_note_update']
+
+                formatted_updated_billing_note = f"{timestamp} {updated_billing_note_body}"
+                monthly.billing_note = formatted_updated_billing_note
+
+
+    db.session.commit()
+    return jsonify({"status": "success"}), 200
+
+
 @app.route('/api/monthly_records')
 def get_monthly_records():
     current_month = get_current_post_month()
@@ -179,16 +213,17 @@ def get_monthly_records():
     status_val = request.args.get('status')
 
 
-    query = Home.query.join(TeamRegister, Home.bc_assignee == TeamRegister.employee_id)\
-        .join(Resident, Home.home_id == Resident.home_id)\
+    query = MonthlyData.query.filter(MonthlyData.post_month == current_month)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
         .join(Leases, Resident.lease_id == Leases.lease_id)\
-        .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+        .filter(TeamRegister.email == current_user)\
     .options(
-        contains_eager(Home.residents).contains_eager(Resident.monthly_info),
-        contains_eager(Home.residents).contains_eager(Resident.lease)
+        contains_eager(MonthlyData.resident).contains_eager(Resident.home),
+        contains_eager(MonthlyData.resident).contains_eager(Resident.lease)
     )
 
-    query = query.filter(TeamRegister.email == current_user)
     query = query.filter(Home.residents != None)
 
     if market_val and market_val != "":
@@ -201,42 +236,46 @@ def get_monthly_records():
         query = query.filter(MonthlyData.status == status_val)
 
 
-    homes = query.all()
+    results = query.all()
 
     output = []
-    for h in homes:
-        res = h.residents[0] if h.residents else None
-        m_info = next((m for m in res.monthly_info if m.post_month == current_month), None) if res else None
-        l = res.lease if (res and res.lease) else None
+    for m in results:
+        res = m.resident
+        h = res.home if res else None
+        l = res.lease if res else None
 
         output.append({
-            "bc_assignee": h.bc_user.nickname if h.bc_user else "Unassigned",
+            #home info
             "home_code": h.prop_code,
             "market": h.market or "-",
             "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
             "state": h.state,
-            "status": m_info.status if m_info else "-",
-            "quick_note": m_info.quick_note if m_info else "-",
-            "billing_note": m_info.billing_note if m_info else "-",
-            "water": m_info.water if m_info else "0",
-            "water2": m_info.water2 if m_info else "0",
-            "sewer": m_info.sewer if m_info else "0",
-            "sewer2": m_info.sewer2 if m_info else "0",
-            "trash": m_info.trash if m_info else "0",
-            "trash5": m_info.trash5 if m_info else "0",
-            "electric": m_info.electric if m_info else "0",
-            "electric2": m_info.electric2 if m_info else "0",
-            "gas": m_info.gas if m_info else "0",
-            "gas2_propane": m_info.gas2_propane if m_info else "0",
-            "irrigation": m_info.irrigation if m_info else "0",
-            "base_basic": m_info.base_basic if m_info else "0",
-            "stormwater": m_info.stormwater if m_info else "0",
+            #monthly info
+            "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
+            "status": m.status if m else "-",
+            "quick_note": m.quick_note if m else "-",
+            "billing_note": m.billing_note if m else "-",
+            "water": m.water if m else "0",
+            "water2": m.water2 if m else "0",
+            "sewer": m.sewer if m else "0",
+            "sewer2": m.sewer2 if m else "0",
+            "trash": m.trash if m else "0",
+            "trash5": m.trash5 if m else "0",
+            "electric": m.electric if m else "0",
+            "electric2": m.electric2 if m else "0",
+            "gas": m.gas if m else "0",
+            "gas2_propane": m.gas2_propane if m else "0",
+            "irrigation": m.irrigation if m else "0",
+            "base_basic": m.base_basic if m else "0",
+            "stormwater": m.stormwater if m else "0",
+            #resident info
             "resident_code": res.resident_code if res else None,
             "resident_id": res.resident_id if res else None,
             "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
             "move_in": res.move_in if res else "-",
             "renewal": res.renewal if res else "-",
             "admin_notes": res.admin_notes if res else "-",
+            #lease info
             "lease_states": l.states if l else "-",
             "lease_intro": l.intro if l else "-",
             "lease_retirement": l.retirement if l else "-",
@@ -256,10 +295,11 @@ def get_monthly_records():
 
     return jsonify(output)
 
-@app.route('/get_lease_details/<int:lease_id>')
-def get_lease_details(lease_id):
-    lease = Leases.query.get(lease_id)
-    return render_template('partials/lease_details.html', lease=lease)
+#Unnecessary now?
+#@app.route('/get_lease_details/<int:lease_id>')
+#def get_lease_details(lease_id):
+    #lease = Leases.query.get(lease_id)
+    #return render_template('partials/lease_details.html', lease=lease)
 
 @app.route('/billing_summary')
 def billing_summary():
@@ -450,31 +490,65 @@ def leadership_tools():
 
 @app.route('/run_monthly_reset', methods=['POST'])
 def run_monthly_reset():
+    current_pm = get_current_post_month()
     data = request.get_json()
     new_date = data.get('date')
     password = data.get('password')
+    no_reset = {'No Billing - Res Name', 'Never Billing - See Notes', 'No Billing - Notice', 'Moved Out'}
+    md = MonthlyData
 
     if password != TEAM_LEAD_PASS:
         return jsonify({"success": False, "message": "Incorrect password."}), 403
     
     try:
+        exists = db.session.query(md).filter_by(post_month=new_date).first()
+        if exists:
+            return jsonify({"success": False, "message": "Post Month already exists."}), 400
+        
         setting = SystemSettings.query.filter_by(setting_key='current_post_month').first()
         if not setting:
             setting = SystemSettings(setting_key='current_post_month')
             db.session.add(setting)
         setting.setting_value = new_date
 
-        sql = text("""
-                   INSERT INTO MonthlyData (resident_id, rollout, action_note, post_month, status)
-                   SELECT Resident.resident_id, 0, 0, :post_month, 'New'
-                   FROM Resident
-                   WHERE NOT EXISTS (
-                       SELECT 1 FROM MonthlyData
-                       WHERE MonthlyData.resident_id = Resident.resident_id AND MonthlyData.post_month = :post_month
-                   )
-                   """)
-        
-        db.session.execute(sql, {"post_month": new_date})
+        new_status = case(
+            (md.status.in_(no_reset), md.status),
+            else_='New'
+        )
+        old_rollout = case(
+            ((md.rollout == 1) & (md.status == 'Mailed'),0),
+            else_=md.rollout
+        )
+        select_query = select(
+            md.resident_id,
+            old_rollout,
+            md.action_note,
+            md.billing_note,
+            md.quick_note,
+            new_date,
+            new_status,
+            md.water,
+            md.water2,
+            md.sewer,
+            md.sewer2,
+            md.trash,
+            md.trash5,
+            md.electric,
+            md.electric2,
+            md.gas,
+            md.gas2_propane,
+            md.irrigation,
+            md.base_basic,
+            md.stormwater
+        ).where(md.post_month == current_pm)
+
+        ins = insert(md).from_select(
+            ['resident_id', 'rollout', 'action_note', 'billing_note', 'quick_note',
+             'post_month', 'status', 'water', 'water2', 'sewer', 'sewer2', 'trash',
+            'trash5', 'electric', 'electric2', 'gas', 'gas2_propane', 'irrigation',
+            'base_basic', 'stormwater'], select_query)
+
+        db.session.execute(ins)
         db.session.commit()
 
         return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})
@@ -540,12 +614,19 @@ def progress_report():
      .filter(MonthlyData.post_month == current_month, MonthlyData.status.in_(['Approved', 'QC Complete', 'Mailed']))\
      .group_by(TeamRegister.nickname).all()
     
+    qc_performance = db.session.query(
+        TeamRegister.nickname,
+        func.count(MonthlyData.monthly_id)
+    ).join(MonthlyData, TeamRegister.employee_id == MonthlyData.qced_by)\
+     .filter(MonthlyData.post_month == current_month, MonthlyData.status.in_(['Approved', 'Rebill', 'QC Complete', 'Mailed']))\
+     .group_by(TeamRegister.nickname).all()
+    
     integrity = {
         'missing_leases': Resident.query.filter(Resident.lease_id == None).count(),
-        'vacant_homes': Home.query.outerjoin(Resident).filter(Resident.resident_id == None).count(),
-        'unassigned_bc': Home.query.filter(Home.bc_assignee == None).count(),
-        'unassigned_bm': Home.query.filter(Home.bm_assignee == None).count(),
-        'unassigned_qc': Home.query.filter(Home.qc_assignee == None).count(),
+        'vacant_homes': MonthlyData.query.outerjoin(Resident).filter(Resident.resident_id == None).count(),
+        'unassigned_bc': MonthlyData.query.filter(MonthlyData.bc_assignee == None).count(),
+        'unassigned_bm': MonthlyData.query.filter(MonthlyData.bm_assignee == None).count(),
+        'unassigned_qc': MonthlyData.query.filter(MonthlyData.qc_assignee == None).count(),
         'missing_market': Home.query.filter(Home.market == None).count()
     }
     return render_template('progress_report.html', 
@@ -553,6 +634,7 @@ def progress_report():
                            stats=stats,
                            integrity=integrity,
                            bc_performance=bc_performance,
+                           qc_performance=qc_performance,
                            current_month=current_month.strftime('%B %Y'))
 
 @app.route('/api/progress_report')
@@ -639,13 +721,7 @@ class Home(db.Model):
     market_rules_id = db.Column(db.Integer, db.ForeignKey('MarketRules.market_rules_id'))
     mgmt_co_id = db.Column(db.Integer, db.ForeignKey('ManagementCompanies.id'))
     acquired_from = db.Column(db.String(100))
-    bc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
-    bm_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
-    qc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
 
-    bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
-    bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
-    qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
     mrkt_rls = db.relationship('MarketRules', foreign_keys=[market_rules_id], backref='home')
     residents = db.relationship('Resident', backref='home', lazy=True)
 
@@ -687,6 +763,9 @@ class MonthlyData(db.Model):
     __tablename__ = 'MonthlyData'
     monthly_id = db.Column(db.Integer, primary_key=True)
     resident_id = db.Column(db.Integer, db.ForeignKey('Resident.resident_id'))
+    bc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    bm_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    qc_assignee = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
@@ -694,6 +773,7 @@ class MonthlyData(db.Model):
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    qced_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
     water = db.Column(db.Integer)
     water2 = db.Column(db.Integer)
     sewer = db.Column(db.Integer)
@@ -708,7 +788,11 @@ class MonthlyData(db.Model):
     base_basic = db.Column(db.Integer)
     stormwater = db.Column(db.Integer)
 
-    billed_by_user = db.relationship('TeamRegister', backref='monthly_data', lazy=True)
+    billed_by_user = db.relationship('TeamRegister', foreign_keys=[billed_by], backref='monthly_data_billed', lazy=True)
+    qced_by_user = db.relationship('TeamRegister', foreign_keys=[qced_by], backref='monthly_data_qc', lazy=True)
+    bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
+    bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
+    qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
 
     def to_dict(self):
         return {

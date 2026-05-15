@@ -110,12 +110,9 @@ Tables
         vacant_gas
 
 
-Features Needed
-    - Monthly Reset
-        -reset homes(really just creating a new table row in MonthlyData and probably Utilities)
-        -add default PM for all other screens
+**Features Needed
 
-    - IMPORTS - need to make sure various id's wont cause issues
+    -IMPORTS - need to make sure various id's wont cause issues
 
     MONTHLY Reset 
         -need iF statement for Current/Previous Rollouts, Never Billing, etc
@@ -190,10 +187,14 @@ Features Needed
             -rebill notes?
             -probs need a rebill table
         -import for editing workspace table 
+                                
 
 DONE!!
-    - Export to Excel 
+    -Export to Excel 
     -Dictionary(?) for Workspace rather than expanding lease/market info
+    -Monthly Reset
+        -reset homes(really just creating a new table row in MonthlyData and probably Utilities)
+        -add default PM for all other screens
 NOTES: 
     Live Service - Google Cloud Run - docker file will be needed
 

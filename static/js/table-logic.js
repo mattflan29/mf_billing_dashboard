@@ -185,6 +185,7 @@ async function submitBatchUpdate() {
     const payload = {
         res_id: resIds,
         billed_by: document.getElementById('update-billed-by').value,
+        qced_by: document.getElementById('update-qced-by').value,
         action_note: document.getElementById('update-action-note').value,
         billing_note: document.getElementById('update-billing-note').value,
         append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
@@ -233,6 +234,45 @@ function copySelectedToClipboard(btn) {
     }).catch(err => {
         fallbackCopyTextToClipboard(finalString, btn);
     });
+}
+function editBillingNoteScreen() {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    if (selectedRows.length === 0) {
+        alert("No items selected");
+        return;
+    }
+    const initialNote = selectedRows[0].billing_note;
+    
+    document.getElementById("editBillingNote").value = initialNote;
+    document.getElementById("note-update-overlay").style.display = "block";
+    document.getElementById("editNoteScreen").style.display = "block";
+}
+async function updateBillingNote() {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const resIds = selectedRows.map(row => row.resident_id);
+    const noteValue = document.getElementById('editBillingNote').value;
+    
+    try {
+        const response = await fetch('/workspace/update_billing_note', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                res_id: resIds,
+                billing_note_update: noteValue
+            })
+        });
+
+        if (response.ok) {
+            alert("Updated successfully")
+            document.getElementById("editNoteScreen").style.display = "none";
+            refreshGridData();
+        } else {
+            alert("Error updating");
+        }
+
+    } catch (err) {
+        console.error("Error:", err);
+    }
 }
 function debouncedSearch(val) {
     if (workspaceGridApi) {
@@ -350,6 +390,7 @@ function showLeaseDetails (leaseid, data) {
 }
 function formSubmissionOn() {
     document.getElementById("form-overlay").style.display = "block";
+    document.getElementById("submission-form").style.display = "block";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
     closeLibraryButtons();
@@ -415,7 +456,12 @@ function closeLibraryButtons() {
     document.getElementById("libraryBtnClose").style.display = "none";
 
 }
-
+function closeOverlays() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("submission-form").style.display = "none";
+    document.getElementById("note-update-overlay").style.display = "none";
+    document.getElementById("editNoteScreen").style.display = "none";
+}
 //maybe unnecessary
     //select all checkbox logic
 function toggleAll(masterCheckbox) {

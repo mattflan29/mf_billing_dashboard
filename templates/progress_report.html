@@ -59,11 +59,13 @@
         </div>
         <div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px; width: 30%;">
             <h4>QC Completions</h4>
-            <table>
+            <table style="width: 100%; border-collapse: collapse;">
+                {% for name, count in qc_performance %}
                 <tr>
-                    <td></td>
-                    <td></td>
+                    <td>{{ name }}</td>
+                    <td>{{ count }}</td>
                 </tr>
+                {% endfor %}
             </table>
         </div>
     </div>

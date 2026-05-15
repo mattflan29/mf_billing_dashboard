@@ -89,19 +89,35 @@
     </div>
 </div>
 
-<div id="form-overlay">
+<div>
     <form id="submission-form">
         <h2 style="margin-top: 0px;">Updates</h2>
         <button type="button" onclick="containerOff()"
             style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <label>Update Billed By:</label>
-        <select id="update-billed-by">
-            <option value="">--</option>
-            <option value="unassigned">Unassigned</option>
-            {% for b in bc_list %}
-            <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
-            {% endfor %}
-        </select>
+
+        <div style="display: flex; flex-direction: row; justify-content: space-evenly; align-items: baseline;">
+            
+            <div>
+                <label>Update Billed By:</label>
+                <select id="update-billed-by">
+                    <option value="">--</option>
+                    <option value="unassigned">Unassigned</option>
+                    {% for b in bc_list %}
+                    <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Update QCed By:</label>
+                <select id="update-qced-by">
+                    <option value="">--</option>
+                    {% for q in qc_list %}
+                    <option value="{{ q.employee_id }}">{{ q.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
 
         <label>Action Note?</label>
         <select id="update-action-note">
@@ -111,8 +127,6 @@
         </select>
 
         <label>Utility Update</label>
-        <details style="border: 1px #eee;">
-            <summary style="cursor: pointer;">Advanced: Individual Overrides</summary>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px;">
                 {% for key, label in [('water','Water'), ('sewer','Sewer'), ('trash','Trash'), ('electric','Electric'), ('gas','Gas'), ('stormwater','Stormwater'), ('trash5','Trash5'), ('base_basic','Base'), ('water2','Water2'), ('sewer2','Sewer2'), ('electric2','Electric2'), ('gas2','Gas2')] %}
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 2px;">
@@ -131,7 +145,7 @@
                 </div>
                 {% endfor %}
             </div>
-        </details>
+
         
         <label for="">Quick Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
@@ -169,6 +183,7 @@
         <button type="button" onclick="submitBatchUpdate()"
             style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </form>
+    <div id="form-overlay" onclick="closeOverlays()"></div>
 </div>
 
 <div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0%; padding: 0%;"></div>
@@ -176,10 +191,51 @@
 <div id="close-box-window" onclick="containerOff()"></div>
 <div id="close-library-buttons" onclick="closeLibraryButtons()"></div>
 
+<div id="workspaceRightClick" class="workspace-right-click" style="display: none;">
+    <ul>
+        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt to use the ag-grid context menu-->
+        <li>Copy Home Code</li>
+        <li>Copy BM Email</li>
+        <li onclick="editBillingNoteScreen()">Edit Note</li>
+        <li>Open Library</li>
+        <li>Search by Home Code</li>
+    </ul>
+</div>
+
+<div>
+    <form id="editNoteScreen" style="display: none;">
+        <h2>Edit Billing Note</h2>
+        <textarea id="editBillingNote"></textarea>
+        <button type="button" id="editBillingNoteSubmission" onclick="updateBillingNote()">Submit</button>
+    </form>
+    <div id="note-update-overlay" onclick="closeOverlays()"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
+<script>
+    document.onclick = hideMenu;
+    document.oncontextmenu = rightClick;
+
+    function hideMenu() {
+        document.getElementById('workspaceRightClick').style.display = 'none';
+    }
+
+    function rightClick(e) {
+        e.preventDefault();
+
+        if (document.getElementById('workspaceRightClick').style.display === 'block')
+        hideMenu();
+        
+        else {
+            let menu = document.getElementById('workspaceRightClick');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+    }
+</script>
 {% endblock %}
 
 </html>
