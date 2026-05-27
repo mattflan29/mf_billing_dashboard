@@ -93,6 +93,19 @@ const workspaceGridOptions = {
 
     onFirstDataRendered: params => {
         params.api.sizeColumnsToFit();
+    },
+    preventDefaultOnContextMenu: true,
+
+    onCellContextMenu: (params) => {
+        workspaceGridApi.deselectAll();
+        params.node.setSelected(true);
+
+        let menu = document.getElementById('workspaceRightClick');
+        if (menu) {
+            menu.style.display = 'block';
+            menu.style.left = params.event.pageX + 'px';
+            menu.style.top = params.event.pageY + 'px';
+        }
     }
 };
 document.addEventListener('DOMContentLoaded', () => {
@@ -265,6 +278,7 @@ async function updateBillingNote() {
         if (response.ok) {
             alert("Updated successfully")
             document.getElementById("editNoteScreen").style.display = "none";
+            document.getElementById("note-update-overlay").style.display = "none";
             refreshGridData();
         } else {
             alert("Error updating");
@@ -436,6 +450,7 @@ function showMarketDetails (market, data) {
 }
 function containerOff() {
     document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("submission-form").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
     document.getElementById("close-box-window").style.display = "none";

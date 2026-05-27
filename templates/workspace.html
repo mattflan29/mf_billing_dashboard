@@ -205,7 +205,7 @@
 <div>
     <form id="editNoteScreen" style="display: none;">
         <h2>Edit Billing Note</h2>
-        <textarea id="editBillingNote"></textarea>
+        <textarea id="editBillingNote" style="width: 99%; height: 50px;"></textarea>
         <button type="button" id="editBillingNoteSubmission" onclick="updateBillingNote()">Submit</button>
     </form>
     <div id="note-update-overlay" onclick="closeOverlays()"></div>
@@ -215,27 +215,22 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
 <script>
-    document.onclick = hideMenu;
-    document.oncontextmenu = rightClick;
+    document.addEventListener('click', function () {
+     const menu = document.getElementById('workspaceRightClick');
+     if (menu.style.display === 'block') {
+        hideMenu();
+     }
+    });
 
     function hideMenu() {
-        document.getElementById('workspaceRightClick').style.display = 'none';
+    const menu = document.getElementById('workspaceRightClick');
+    if (menu) {
+        menu.style.display = 'none';
+        workspaceGridApi.deselectAll();
     }
-
-    function rightClick(e) {
-        e.preventDefault();
-
-        if (document.getElementById('workspaceRightClick').style.display === 'block')
-        hideMenu();
-        
-        else {
-            let menu = document.getElementById('workspaceRightClick');
-            menu.style.display = 'block';
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
-        }
-    }
+}
 </script>
+
 {% endblock %}
 
 </html>

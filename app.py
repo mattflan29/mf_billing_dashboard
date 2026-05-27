@@ -125,7 +125,7 @@ def update_monthly_data():
                 monthly.status = data['status']
 
             if data.get('quick_note'):
-                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
+                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
                 new_quick_note_body = data['quick_note']
             
                 formatted_quick_note = f"{timestamp} {new_quick_note_body}"
@@ -140,7 +140,7 @@ def update_monthly_data():
                     monthly.quick_note = formatted_quick_note
 
             if data.get('billing_note'):
-                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
+                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
                 new_billing_note_body = data['billing_note']
             
                 formatted_billing_note = f"{timestamp} {new_billing_note_body}"
@@ -187,17 +187,21 @@ def update_billing_note():
     res_ids = data.get('res_id', [])
     current_month = get_current_post_month()
 
-    for r_id in res_ids:
-        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
-        
-        if monthly:
-            if data.get('billing_note_update'):
-                timestamp = datetime.now(tz).strftime("%m/%d/%y %I:%M %p")
-                updated_billing_note_body = data['billing_note_update']
+    if 'billing_note_update' in data:
+        raw_note = data['billing_note_update'].strip()
 
-                formatted_updated_billing_note = f"{timestamp} {updated_billing_note_body}"
-                monthly.billing_note = formatted_updated_billing_note
-
+        for r_id in res_ids:
+            monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
+            
+            if monthly:
+                if raw_note != "":
+                    now = datetime.now(tz)
+                    time_string = now.strftime("%I:%M %p").lstrip("0")
+                    timestamp = f"{now.month}/{now.day}/{now.strftime('%y')} {time_string}"
+                    
+                    monthly.billing_note = f"{timestamp} {raw_note}"
+                else: 
+                    monthly.billing_note = None
 
     db.session.commit()
     return jsonify({"status": "success"}), 200
