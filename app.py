@@ -186,6 +186,7 @@ def update_billing_note():
     data = request.get_json()
     res_ids = data.get('res_id', [])
     current_month = get_current_post_month()
+    line_regex = r'^(\d{1,2}/\d{1,2}/\d{2} \d{1,2}:\d{2} [AP]M)\s*(.*)$'
 
     if 'billing_note_update' in data:
         raw_note = data['billing_note_update'].strip()
@@ -195,11 +196,38 @@ def update_billing_note():
             
             if monthly:
                 if raw_note != "":
+                    old_note_content = set()
+                    if monthly.billing_note:
+                        for old_line in monthly.billing_note.split('\n'):
+                            old_line = old_line.strip()
+                            if old_line:
+                                match = re.match(line_regex, old_line)
+                                if match:
+                                    old_note_content.add(match.group(2).strip())
+                                else:
+                                    old_note_content.add(old_line)
+                
                     now = datetime.now(tz)
                     time_string = now.strftime("%I:%M %p").lstrip("0")
                     timestamp = f"{now.month}/{now.day}/{now.strftime('%y')} {time_string}"
-                    
-                    monthly.billing_note = f"{timestamp} {raw_note}"
+                    old_lines = []
+                    new_lines = [line.strip() for line in raw_note.split('\n') if line.strip()]
+
+                    for line in new_lines:
+                        match = re.match(line_regex, line)
+
+                        if match:
+                            old_timestamp = match.group(1)
+                            line_text = match.group(2).strip()
+
+                            if line_text in old_note_content:
+                                old_lines.append(f"{old_timestamp} {line_text}")
+                            else: 
+                                old_lines.append(f"{timestamp} {line_text}")
+                        else:
+                            old_lines.append(f"{timestamp} {line}")
+
+                    monthly.billing_note = "\n".join(old_lines)
                 else: 
                     monthly.billing_note = None
 

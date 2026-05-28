@@ -287,6 +287,7 @@ async function updateBillingNote() {
     } catch (err) {
         console.error("Error:", err);
     }
+    workspaceGridApi.deselectAll();
 }
 function debouncedSearch(val) {
     if (workspaceGridApi) {

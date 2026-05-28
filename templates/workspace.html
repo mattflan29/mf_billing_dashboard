@@ -207,6 +207,7 @@
         <h2>Edit Billing Note</h2>
         <textarea id="editBillingNote" style="width: 99%; height: 50px;"></textarea>
         <button type="button" id="editBillingNoteSubmission" onclick="updateBillingNote()">Submit</button>
+        <h2>CANNOT MASS EDIT NOTES - ONLY ADD LINES OR DELETE</h2>
     </form>
     <div id="note-update-overlay" onclick="closeOverlays()"></div>
 </div>
@@ -219,14 +220,12 @@
      const menu = document.getElementById('workspaceRightClick');
      if (menu.style.display === 'block') {
         hideMenu();
-     }
-    });
+     }});
 
     function hideMenu() {
     const menu = document.getElementById('workspaceRightClick');
     if (menu) {
         menu.style.display = 'none';
-        workspaceGridApi.deselectAll();
     }
 }
 </script>
