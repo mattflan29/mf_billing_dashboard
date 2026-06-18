@@ -1,6 +1,6 @@
 GET SITE RUNNING:
     New powershell - cd C:\Users\mflanagan\Desktop\MySQL\mysql\bin
-                    -.\mysqld --console
+                   - .\mysqld --console
     New powershell - py app.py
 
 Relationships

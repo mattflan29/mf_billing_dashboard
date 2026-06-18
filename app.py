@@ -234,6 +234,29 @@ def update_billing_note():
     db.session.commit()
     return jsonify({"status": "success"}), 200
 
+@app.route('/workspace/import_rebills', methods=['POST'])
+def import_rebills():
+    if request.method == 'POST':
+        file = request.files.get('file')
+        
+        if not file:
+            flash("No file selected!", "failure")
+        
+        df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
+        df = df.astype(object).replace({np.nan: None})
+
+        bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()}
+        qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'QC Specialist').all()}
+        
+        for index, row in df.iterrows():
+            new_entry = TeamRegister(
+                role=clean_val(row.get('Position')),
+                name=clean_val(row.get('Name')),
+                nickname=clean_val(row.get('Nickname')),
+                email=clean_val(row.get('Email')),
+                manager_name=clean_val(row.get('Manager Nickname'))
+            )
+            db.session.add(new_entry)
 
 @app.route('/api/monthly_records')
 def get_monthly_records():
@@ -825,6 +848,7 @@ class MonthlyData(db.Model):
     bc_user = db.relationship('TeamRegister', foreign_keys=[bc_assignee], backref='bc_homes')
     bm_user = db.relationship('TeamRegister', foreign_keys=[bm_assignee], backref='bm_homes')
     qc_user = db.relationship('TeamRegister', foreign_keys=[qc_assignee], backref='qc_homes')
+    rebill_data = db.relationship('Rebills', backref='monthly_data', lazy=True)
 
     def to_dict(self):
         return {
@@ -841,6 +865,19 @@ class MonthlyData(db.Model):
             "bm_assignee": self.resident.home.bm_user.nickname if self.resident.home.bm_user else "unassigned",
             "qc_assignee": self.resident.home.qc_user.nickname if self.resident.home.qc_user else "unassigned"
         }
+
+class Rebills(db.Model):
+    __tablename__ = 'Rebills'
+    rebill_id = db.Column(db.Integer, primary_key=True)
+    monthly_id = db.Column(db.Integer, db.ForeignKey('MonthlyData.monthly_id'))
+    home_id = db.Column(db.Integer, db.ForeignKey('Home.home_id'))
+    responsible = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    fixed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    qced_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    rebill_note = db.Column(db.String(500))
+    handback = db.Column(db.Boolean)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz=pytz.UTC))
+
 
 @app.route('/api/data', methods=['GET'])
 def get_data():

@@ -477,6 +477,8 @@ function closeOverlays() {
     document.getElementById("submission-form").style.display = "none";
     document.getElementById("note-update-overlay").style.display = "none";
     document.getElementById("editNoteScreen").style.display = "none";
+    document.getElementById("add-rebill-overlay").style.display = "none";
+    document.getElementById("addRebillScreen").style.display = "none";
 }
 //maybe unnecessary
     //select all checkbox logic
