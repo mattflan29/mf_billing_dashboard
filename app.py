@@ -239,24 +239,42 @@ def import_rebills():
     if request.method == 'POST':
         file = request.files.get('file')
         
-        if not file:
-            flash("No file selected!", "failure")
-        
         df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
         df = df.astype(object).replace({np.nan: None})
 
-        bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()}
-        qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'QC Specialist').all()}
-        
+        current_pm = get_current_post_month()
+
+        bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.all()}
+        qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.all()}
+        monthly_records = db.session.query(MonthlyData.monthly_id, Home.home_id, Home.prop_code)\
+                    .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+                    .join(Home, Resident.home_id == Home.home_id)\
+                    .filter(MonthlyData.post_month == current_pm).all()
+        monthly_id_lookup = {r.prop_code: r.monthly_id for r in monthly_records}
+        home_id_lookup = {r.prop_code: r.home_id for r in monthly_records} 
+
         for index, row in df.iterrows():
-            new_entry = TeamRegister(
-                role=clean_val(row.get('Position')),
-                name=clean_val(row.get('Name')),
-                nickname=clean_val(row.get('Nickname')),
-                email=clean_val(row.get('Email')),
-                manager_name=clean_val(row.get('Manager Nickname'))
+            prop_code = clean_val(row.get('Prop Code'))
+            home_id = home_id_lookup.get(prop_code)
+            monthly_id = monthly_id_lookup.get(prop_code)
+            responsible = bc_lookup.get(clean_val(row.get('Responsible')))
+            qced_by = qc_lookup.get(clean_val(row.get('QCed By')))
+            if clean_val(row.get('Handback?(Y/N)')) == "Y":
+                handback = 1
+            else: handback = 0
+            new_entry = Rebills(
+                monthly_id=monthly_id,
+                home_id=home_id,
+                responsible=responsible,
+                qced_by=qced_by,
+                rebill_note=clean_val(row.get('Rebill Note')),
+                handback=handback,
             )
             db.session.add(new_entry)
+        db.session.commit()
+        flash("Rebills imported", "success")
+
+        return redirect(url_for('workspace'))
 
 @app.route('/api/monthly_records')
 def get_monthly_records():
@@ -403,10 +421,6 @@ def imports():
     if request.method == 'POST':
         file = request.files.get('file')
         table_choice = request.form.get('target_table')
-
-        if not file:
-            flash("No file selected!", "failure")
-            return redirect(url_for('imports'))
         
         df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
         df = df.astype(object).replace({np.nan: None})
@@ -725,6 +739,11 @@ def get_progress_report():
         })
 
     return jsonify(output)
+
+@app.route('/api/rebill_data')
+def get_rebill_data():
+    current_month = get_current_post_month()
+    
 
 # Tables
 class SystemSettings(db.Model):
