@@ -144,6 +144,22 @@ document.addEventListener('DOMContentLoaded', () => {
             progressGridApi.setGridOption('rowData', data);
         });
 });
+const rebillColumnData = [
+
+]
+const rebillGridOptions = {
+    columnDefs: rebillColumnData,
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#rebillGrid');
+    rebillGridApi = agGrid.createGrid(gridDiv, rebillGridOptions);
+
+    fetch('/api/rebill_data')
+        .then(res => res.json())
+        .then(data => {
+            rebillGridApi.setGridOption('rowData', data);
+        });
+});
 function onBtnExportCSV() {
     workspaceGridApi.exportDataAsCsv();
 }

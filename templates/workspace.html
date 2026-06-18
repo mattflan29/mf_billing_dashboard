@@ -214,24 +214,25 @@
 </div>
 
 <div>
-    <form id="addRebillScreen" style="display: none;">
+    <div id="addRebillScreen" style="display: none;">
         <h2>Add Rebill</h2>
         <textarea id="addRebillNote" style="width: 99%; height: 50px;"></textarea>
 
-        <details name="import">
+        <div name="import">
         <summary id="leadership-tools"><strong>Import Rebills</strong></summary>
         <div style="padding: 10px; margin-top: 5px;">
             <form action="/workspace/import_rebills" method="POST" enctype="multipart/form-data">
                 <label>Upload File:</label>
-                <a href="{{ url_for('static', filename='Import_CSV_Templates/REBILLS_CSV_TEMPLATE.csv') }}" 
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/Rebills_CSV_TEMPLATE.csv') }}" 
                     download="Rebills.csv" 
                     style="margin-right: 50px; font-size: 14px;">
                     Download Template File</a>
-                <input type="file" name="file" accept=".csv, .xlsx">
+                <input type="file" name="file" accept=".csv, .xlsx" required>
                 <button type="submit" style="margin-top: 5px;">Import Rebills</button>
             </form>
-    </details>
-    </form>
+        </div>
+    </div>
+    </div>
     <div id="add-rebill-overlay" onclick="closeOverlays()"></div>
 
 </div>
