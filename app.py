@@ -636,7 +636,8 @@ def table_view():
         'Management Companies': ManagementCompanies,
         'Market Rules': MarketRules,
         'System Settings': SystemSettings,
-        'Monthly Data': MonthlyData
+        'Monthly Data': MonthlyData,
+        'Rebills': Rebills
     }
     target = request.args.get('table', 'Homes')
     search_query = request.args.get('q', '')
@@ -740,9 +741,71 @@ def get_progress_report():
 
     return jsonify(output)
 
+@app.route('/rebills')
+def rebills():
+    return render_template('rebills.html', title="Rebills")
+
 @app.route('/api/rebill_data')
 def get_rebill_data():
     current_month = get_current_post_month()
+    market_val = request.args.get('market')
+    mgmt_val = request.args.get('mgmt')
+    state_val = request.args.get('state')
+    status_val = request.args.get('status')
+
+#TODO: fix query to only pull current PM - have to loop rebill through MonthlyData to get the PM
+    query = Rebills.query.filter(Rebills.post_month == current_month)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.id)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+    .options(
+        contains_eager(MonthlyData.resident).contains_eager(Resident.home),
+        contains_eager(MonthlyData.resident).contains_eager(Resident.lease)
+    )
+
+    query = query.filter(Home.residents != None)
+
+    if market_val and market_val != "":
+        query = query.filter(Home.market == market_val)
+    if mgmt_val and mgmt_val != "":
+        query = query.filter(Home.mgmt_co_id == int(mgmt_val))
+    if state_val and state_val != "":
+        query = query.filter(Home.state == state_val)
+    if status_val and status_val != "":
+        query = query.filter(MonthlyData.status == status_val)
+
+
+    results = query.all()
+
+    output = []
+    for m in results:
+        res = m.resident
+        h = res.home if res else None
+        reb = m.rebill if m else None
+
+        output.append({
+            #rebill info
+            "rebill_note": m.rebill_note,
+            #home info
+            "home_code": h.prop_code,
+            "market": h.market or "-",
+            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
+            "state": h.state,
+            #monthly info
+            "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
+            "status": m.status if m else "-",
+            "quick_note": m.quick_note if m else "-",
+            "billing_note": m.billing_note if m else "-",
+            #resident info
+            "resident_code": res.resident_code if res else None,
+            "resident_id": res.resident_id if res else None,
+            "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
+            "move_in": res.move_in if res else "-",
+            "renewal": res.renewal if res else "-",
+            "admin_notes": res.admin_notes if res else "-",
+        })
+    return jsonify(output)
     
 
 # Tables
