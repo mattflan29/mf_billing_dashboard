@@ -480,7 +480,7 @@ input[type="checkbox"] {
 ag-body-viewport.ag-layout-normal.ag-row-animation {
     margin: 0 !important;
 }
-#workspaceGrid, #progressReportGrid {
+#workspaceGrid, #progressReportGrid, #rebillGrid {
     height: 75vh;
     width: 100%;
 }

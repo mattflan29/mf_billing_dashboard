@@ -269,6 +269,7 @@ def import_rebills():
                 qced_by=qced_by,
                 rebill_note=clean_val(row.get('Rebill Note')),
                 handback=handback,
+                post_month=current_pm
             )
             db.session.add(new_entry)
         db.session.commit()
@@ -743,7 +744,55 @@ def get_progress_report():
 
 @app.route('/rebills')
 def rebills():
-    return render_template('rebills.html', title="Rebills")
+    current_month = get_current_post_month()
+    
+    filtered_data = db.session.query(
+        Home.market, 
+        Home.state, 
+        ManagementCompanies.id, 
+        ManagementCompanies.mgmt_co, 
+        MonthlyData.status,
+        Rebills.fixed_by,
+        Rebills.post_month)\
+        .select_from(Rebills)\
+        .where(Rebills.post_month == current_month)\
+        .join(TeamRegister, Rebills.responsible == TeamRegister.employee_id)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        .all()
+    
+    markets_set = set()
+    states_set = set()
+    mgmtco_dict = {}
+    status_set = set()
+    fixed_by_options = set()
+    post_months = set()
+
+    for market, state, co_id, co_name, status, fixed_by, post_month in filtered_data:
+        if market: markets_set.add(market)
+        if state: states_set.add(state)
+        if co_id: mgmtco_dict[co_id] = co_name
+        if status: status_set.add(status)
+        if fixed_by: fixed_by_options.add({"id": fixed_by, "name": db.session.query(TeamRegister.nickname).filter(TeamRegister.employee_id == fixed_by).first().nickname})
+        if post_month: post_months.add(post_month)
+    states = sorted(list(states_set))
+    markets = sorted(list(markets_set))
+    status = sorted(list(status_set))
+    companies = [{"id": co_id, "mgmt_co": co_name} for co_id, co_name in mgmtco_dict.items()]
+    companies = sorted(companies, key=lambda x: x['mgmt_co'])
+    post_months = db.session.query(Rebills.post_month).distinct().order_by(desc(Rebills.post_month)).all()
+    fixed_by_options = sorted(list(fixed_by_options), key=lambda x: x['name'])
+
+    return render_template('rebills.html',
+                           title="Rebills", 
+                           states=states,
+                           markets=markets, 
+                           companies=companies,
+                           status=status,
+                           fixed_by_options=fixed_by_options,
+                           post_months=post_months)
 
 @app.route('/api/rebill_data')
 def get_rebill_data():
@@ -752,16 +801,16 @@ def get_rebill_data():
     mgmt_val = request.args.get('mgmt')
     state_val = request.args.get('state')
     status_val = request.args.get('status')
+    fixed_by_val = request.args.get('fixed_by')
 
-#TODO: fix query to only pull current PM - have to loop rebill through MonthlyData to get the PM
     query = Rebills.query.filter(Rebills.post_month == current_month)\
-        .join(MonthlyData, Rebills.monthly_id == MonthlyData.id)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
         .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
         .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
         .join(Home, Resident.home_id == Home.home_id)\
     .options(
-        contains_eager(MonthlyData.resident).contains_eager(Resident.home),
-        contains_eager(MonthlyData.resident).contains_eager(Resident.lease)
+        contains_eager(Rebills.monthly_data).contains_eager(MonthlyData.resident)\
+        .contains_eager(Resident.home)
     )
 
     query = query.filter(Home.residents != None)
@@ -774,29 +823,36 @@ def get_rebill_data():
         query = query.filter(Home.state == state_val)
     if status_val and status_val != "":
         query = query.filter(MonthlyData.status == status_val)
-
+    if fixed_by_val and fixed_by_val != "":
+        query = query.filter(Rebills.fixed_by == int(fixed_by_val))
 
     results = query.all()
 
     output = []
-    for m in results:
-        res = m.resident
+    for reb in results:
+        md = reb.monthly_data
+        res = md.resident
         h = res.home if res else None
-        reb = m.rebill if m else None
 
         output.append({
             #rebill info
-            "rebill_note": m.rebill_note,
+            "rebill_note": reb.rebill_note,
+            "post_month": reb.post_month.strftime('%#m/%#d/%Y') if reb and reb.post_month else "-",
+            "handback": reb.handback if reb else 0,
+            "responsible": reb.responsible_user.nickname if reb and reb.responsible_user else "Unassigned",
+            "qced_by": reb.qced_by_user.nickname if reb and reb.qced_by_user else "Unassigned",
+            "created_at": reb.created_at.strftime('%Y-%m-%d %H:%M:%S') if reb and reb.created_at else "-",
+            "fixed_by": reb.fixed_by_user.nickname if reb and reb.fixed_by_user else "",
             #home info
             "home_code": h.prop_code,
             "market": h.market or "-",
-            "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
             "state": h.state,
+            "mgmt_co": h.management_company.mgmt_nickname if h and h.management_company else "-",
             #monthly info
-            "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
-            "status": m.status if m else "-",
-            "quick_note": m.quick_note if m else "-",
-            "billing_note": m.billing_note if m else "-",
+            "bc_assignee": md.bc_user.nickname if md.bc_user else "Unassigned",
+            "status": md.status if md else "-",
+            "quick_note": md.quick_note if md else "-",
+            "billing_note": md.billing_note if md else "-",
             #resident info
             "resident_code": res.resident_code if res else None,
             "resident_id": res.resident_id if res else None,
@@ -959,6 +1015,11 @@ class Rebills(db.Model):
     rebill_note = db.Column(db.String(500))
     handback = db.Column(db.Boolean)
     created_at = db.Column(db.DateTime, default=datetime.now(tz=pytz.UTC))
+    post_month = db.Column(db.Date)
+
+    responsible_user = db.relationship('TeamRegister', foreign_keys=[responsible], backref='rebills_responsible', lazy=True)
+    qced_by_user = db.relationship('TeamRegister', foreign_keys=[qced_by], backref='rebills_qc', lazy=True)
+    fixed_by_user = db.relationship('TeamRegister', foreign_keys=[fixed_by], backref='rebills_fixed', lazy=True)
 
 
 @app.route('/api/data', methods=['GET'])

@@ -1,5 +1,8 @@
 // table logic
 let workspaceGridApi;
+let progressGridApi;
+let rebillGridApi;
+// workspace grid
 const utilitiesCellFormatting = (params) => {
     const map = {
         0: 'F',
@@ -114,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     refreshGridData();
 });
+// progress report grid
 const progressReportColumnData = [
     { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
     { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
@@ -133,7 +137,6 @@ const progressReportGridOptions = {
     //groupDefaultExpanded: 1,
     //suppressAggFuncInHeader: true,
 };
-let progressGridApi;
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#progressReportGrid');
     progressGridApi = agGrid.createGrid(gridDiv, progressReportGridOptions);
@@ -144,12 +147,40 @@ document.addEventListener('DOMContentLoaded', () => {
             progressGridApi.setGridOption('rowData', data);
         });
 });
+// rebill grid
+const rebillCellFormatting = (params) => {
+    if (params.colDef.field === 'handback') {
+        return params.value ? '\u2713' : '';
+    }
+};
 const rebillColumnData = [
-
-]
+    { field: "post_month", headerName: "Post Month", filter: true, sortable: true, width: 150  },
+    { field: "mgmt_co", headerName: "Management Co", filter: true, sortable: true, width: 150  },
+    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
+    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true, width: 150 },
+    { field: "responsible", headerName: "Billed By", filter: true, sortable: true, width: 150 },
+    { field: "qced_by", headerName: "QCed By", filter: true, sortable: true, width: 150 },
+    { field: "rebill_note", headerName: "Rebill Note", cellStyle: { whiteSpace: 'pre-wrap'}, filter: true, sortable: true, width: 300 },
+    { field: "handback", headerName: "Handback?", cellDataType: 'false', valueFormatter: rebillCellFormatting, filter: true, sortable: true, width: 150  },
+    { field: "fixed_by", headerName: "Fixed By", filter: true, sortable: true, width: 150 },
+];
 const rebillGridOptions = {
     columnDefs: rebillColumnData,
-}
+    rowData: [],
+    rowSelection: {
+        mode: 'multiRow',
+        headerCheckbox: true,
+        checkboxes: true,
+        enableClickSelection: false
+    },
+    autoSizeStrategy: {
+        type: 'fitCellContents'
+    },
+    embedFullWidthRows: true,
+    pagination: true,
+    paginationPageSize: 1000,
+    paginationPageSizeSelector: [100, 200, 500, 1000]
+};
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#rebillGrid');
     rebillGridApi = agGrid.createGrid(gridDiv, rebillGridOptions);

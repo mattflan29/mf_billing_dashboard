@@ -4,50 +4,66 @@
 <div style="display: flex; justify-content: space-between; margin: 1%">
     <div style="display: flex;">
         <div>
-            <label style="font-size: 12px;">Management Co:</label>
+            <label style="font-size: 12px;">Mgmt Co:</label>
             <select id="mgmt_filter" name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
-                <option value="">All Companies</option>
+                <option value="">All</option>
                 {% for co in companies %}
                 <option value="{{ co.id }}">{{ co.mgmt_co }}</option>
                 {% endfor %}
             </select>
         </div>
-
         <div>
             <label style="font-size: 12px;">State:</label>
             <select id="state_filter" name="state_filter" style="padding: 5px; border-radius: 4px;">
-                <option value="">All States</option>
+                <option value="">All</option>
                 {% for s in states %}
                 <option value="{{ s }}">{{ s }}</option>
                 {% endfor %}
             </select>
         </div>
-
         <div>
             <label style="font-size: 12px;">Market:</label>
             <select id="market_filter" name="market_filter" style="padding: 5px; border-radius: 4px;">
-                <option value="">All Markets</option>
+                <option value="">All</option>
                 {% for m in markets %}
                 <option value="{{ m }}">{{ m }}</option>
                 {% endfor %}
             </select>
         </div>
-
         <div>
-            <label style="font-size: 12px;">Status:</label>
+            <label style="font-size: 12px;">Home Status:</label>
             <select id="status_filter" name="status_filter" style="padding: 5px; border-radius: 4px;">
-                <option value="">All Statuses</option>
+                <option value="">All</option>
                 {% for s in status %}
                 <option value="{{ s }}">{{ s }}</option>
                 {% endfor %}
             </select>
         </div>
+        <div>
+            <label style="font-size: 12px;">Post Month:</label>
+            <select id="pm_filter" name="pm_filter" style="padding: 5px; border-radius: 4px;">
+                {% for pm in post_months %}
+                <option value="{{ pm.post_month }}">{{ pm.post_month.strftime('%#m/%#d/%Y') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">Fixed By:</label>
+            <select id="fixed_by_filter" name="fixed_by_filter" style="padding: 5px; border-radius: 4px;">
+                <option value=""></option>
+                <option value="">All</option>
+                {% for user in fixed_by_options %}
+                <option value="{{ user.id }}">{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
 
         <button type="button" onclick="refreshGridData()"
             style="height: 80%; margin: auto; padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
             Filter
         </button>
-        <button type="button" onclick="window.location.href='{{ url_for('workspace') }}'"
+        <button type="button" onclick="window.location.href='{{ url_for('rebills') }}'"
             style="font-size: 12px; color: gray; background:none; border:none; cursor:pointer;">
             Clear All
         </button>
@@ -57,7 +73,6 @@
             Copy Selected to Clipboard
         </button>
         <button onclick="onBtnExportCSV()" class="button-format">Export to CSV</button>
-        <button onclick="showAddRebillScreen()" class="button-format">Add Rebill</button>
     </div>
 </div>
 
@@ -96,10 +111,6 @@
         }
     }
 
-    function showAddRebillScreen() {
-        document.getElementById("addRebillScreen").style.display = "block";
-        document.getElementById("add-rebill-overlay").style.display = "block";
-    }
 </script>
 
 {% endblock %}
