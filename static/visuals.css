@@ -507,6 +507,25 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     margin-left: 10px !important;
     margin-right: 10px !important;
 }
+.ag-header-cell.ag-column-first {
+    padding-left: 0 !important;
+}
+.ag-header-cell-comp-wrapper  {
+    margin-left: 0 !important;
+    .ag-cell-label-container {
+        margin-left: 0 !important;
+    }
+}
+.ag-cell.ag-column-first {
+    margin-left: 10px;
+    margin-right: 10px !important;
+    border-left: 0px !important;
+    padding-right: 8px !important;
+    .ag-cell-wrapper, .ag-selection-checkbox {
+        margin-left: 0 !important;
+  }
+}
+
 .ag-cell.ag-cell-not-inline-editing.ag-cell-normal-height.ag-column-first {
     display: flex !important;
     justify-content: flex-start !important;

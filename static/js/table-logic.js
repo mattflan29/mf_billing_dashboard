@@ -123,15 +123,18 @@ const progressReportColumnData = [
     { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
     { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
     { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
     { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
-    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  }
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 }
 
 ];
 const progressReportGridOptions = {
     columnDefs: progressReportColumnData,
     rowData: [],
     autoSizeStrategy: {
-        type: 'fitGridWidth'
+        type: 'fitCellContents',
+        minWidth: 75
     },
     rowHeight: 25,
     //groupDefaultExpanded: 1,

@@ -720,13 +720,18 @@ def get_progress_report():
         func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
         func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
         func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
-        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed')
-    ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed'),
+        func.count(db.distinct(Rebills.rebill_id)).label('rebills'),
+        func.count(db.distinct(case(( (Rebills.fixed_by.is_(None)) | (Rebills.fixed_by == ''), Rebills.rebill_id )))).label('unresolved_rebills')
+        ).select_from(Home)\
+     .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
      .outerjoin(Resident, Home.home_id == Resident.home_id)\
      .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+     .outerjoin(Rebills, (Rebills.monthly_id == MonthlyData.monthly_id) & (Rebills.post_month == current_month))\
      .filter(Home.state != None)\
      .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
      .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
+    
 
     output = []
     for r in results:
@@ -737,7 +742,9 @@ def get_progress_report():
             "new": r.new,
             "approved": r.approved,
             "qc_complete": r.qc_complete,
-            "mailed": r.mailed
+            "mailed": r.mailed,
+            "unresolved_rebills": r.unresolved_rebills,
+            "rebills": r.rebills
         })
 
     return jsonify(output)
