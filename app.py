@@ -124,21 +124,6 @@ def update_monthly_data():
             if data.get('status'):
                 monthly.status = data['status']
 
-            if data.get('quick_note'):
-                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
-                new_quick_note_body = data['quick_note']
-            
-                formatted_quick_note = f"{timestamp} {new_quick_note_body}"
-
-                if data.get('append_quick_note') is True:
-                    existing_quick_note = monthly.quick_note if monthly.quick_note else ""
-                    if existing_quick_note:
-                        monthly.quick_note = f"{existing_quick_note}\n{formatted_quick_note}"
-                    else:
-                        monthly.quick_note = formatted_quick_note
-                else:
-                    monthly.quick_note = formatted_quick_note
-
             if data.get('billing_note'):
                 timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
                 new_billing_note_body = data['billing_note']
@@ -327,7 +312,6 @@ def get_monthly_records():
             #monthly info
             "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
             "status": m.status if m else "-",
-            "quick_note": m.quick_note if m else "-",
             "billing_note": m.billing_note if m else "-",
             "water": m.water if m else "0",
             "water2": m.water2 if m else "0",
@@ -369,6 +353,8 @@ def get_monthly_records():
 
     return jsonify(output)
 
+@app.route('/api/workspace/rebills')
+def get_rebills_for_home():
 #Unnecessary now?
 #@app.route('/get_lease_details/<int:lease_id>')
 #def get_lease_details(lease_id):
@@ -594,7 +580,6 @@ def run_monthly_reset():
             old_rollout,
             md.action_note,
             md.billing_note,
-            md.quick_note,
             new_date,
             new_status,
             md.water,
@@ -613,7 +598,7 @@ def run_monthly_reset():
         ).where(md.post_month == current_pm)
 
         ins = insert(md).from_select(
-            ['resident_id', 'rollout', 'action_note', 'billing_note', 'quick_note',
+            ['resident_id', 'rollout', 'action_note', 'billing_note',
              'post_month', 'status', 'water', 'water2', 'sewer', 'sewer2', 'trash',
             'trash5', 'electric', 'electric2', 'gas', 'gas2_propane', 'irrigation',
             'base_basic', 'stormwater'], select_query)
@@ -858,7 +843,6 @@ def get_rebill_data():
             #monthly info
             "bc_assignee": md.bc_user.nickname if md.bc_user else "Unassigned",
             "status": md.status if md else "-",
-            "quick_note": md.quick_note if md else "-",
             "billing_note": md.billing_note if md else "-",
             #resident info
             "resident_code": res.resident_code if res else None,
@@ -969,7 +953,6 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
-    quick_note = db.Column(db.String(255))
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
@@ -1001,7 +984,6 @@ class MonthlyData(db.Model):
             "rollout": self.rollout,
             "action_note": self.action_note,
             "billing_note": self.billing_note,
-            "quick_note": self.quick_note,
             "post_month": self.post_month,
             "status": self.status,
             "billed_by": self.billed_by_user.nickname if self.billed_by_user else "-",

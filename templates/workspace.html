@@ -65,6 +65,7 @@
 <div id="form-open">
     <button id="libraryBtnExpansion" onclick="showLibraryButtons()">+</button>
     <button id="libraryBtnClose" onclick="closeLibraryButtons()">-</button>
+    <button id="rebillScrnBtn" onclick="rebillScreenOn()">Rebills</button>
     <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
     <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
     <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
@@ -90,9 +91,20 @@
     </div>
 </div>
 
+<div id="rebill-screen-expand">
+    <div>
+        <button onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Rebills</h2>
+        <div id="rebill-view-container" style="display: flex; flex-wrap: wrap;"></div>
+        <div id="rebill-display-content"></div>
+    </div>
+</div>
+
 <div>
+    <div id="form-overlay" onclick="closeOverlays()"></div>
     <form id="submission-form">
-        <h2 style="margin-top: 0px;">Updates</h2>
+        <h2 style="margin-top: 0px;">Updates</hs2>
         <button type="button" onclick="containerOff()"
             style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
 
@@ -147,15 +159,6 @@
                 {% endfor %}
             </div>
 
-        
-        <label for="">Quick Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                replace)</label>
-        </div>
-        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
-
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-billing-note-checkbox">
@@ -184,7 +187,6 @@
         <button type="button" onclick="submitBatchUpdate()"
             style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </form>
-    <div id="form-overlay" onclick="closeOverlays()"></div>
 </div>
 
 <div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0%; padding: 0%;"></div>
@@ -197,8 +199,11 @@
         <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt to use the ag-grid context menu-->
         <li>Copy Home Code</li>
         <li>Copy BM Email</li>
+        <li class="context-separator"></li>
         <li onclick="editBillingNoteScreen()">Edit Note</li>
+        <li class="context-separator"></li>
         <li>Open Library</li>
+        <li class="context-separator"></li>
         <li>Search by Home Code</li>
     </ul>
 </div>

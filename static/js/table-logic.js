@@ -31,8 +31,8 @@ const workspaceColumnData = [
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
     { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
     { field: "market", headerName: "Market", filter: true, sortable: true },
-    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true, width: 150 },
-    { field: "move_in", headerName: "Move-In Date", 
+    { field: "resident_code", headerName: "Res Acct", filter: true, sortable: true, width: 150 },
+    { field: "move_in", headerName: "Move-In", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -44,7 +44,7 @@ const workspaceColumnData = [
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
-    { field: "renewal", headerName: "Renewal Date", 
+    { field: "renewal", headerName: "Renewal", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -56,11 +56,11 @@ const workspaceColumnData = [
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
-    { field: "lease_id", headerName: "Lease ID", filter: true, sortable: true, width: 125 },
+    { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "quick_note", headerName: "Quick Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+    { headerName: "Rebills", cellRenderer: function(params){
+        return '<button type="button" onclick="openRebillDataForHome()"> Open </button>'}},
     { field: "billing_note", headerName: "Billing Note", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
@@ -90,6 +90,8 @@ const workspaceGridOptions = {
     autoSizeStrategy: {
         type: 'fitGridWidth'
     },
+    alwaysShowVerticalScroll: true,
+    alwaysShowHorizontalScroll: false,
     pagination: true,
     paginationPageSize: 10000,
     paginationPageSizeSelector: [1000, 2000, 5000, 10000],
@@ -428,6 +430,7 @@ function leaseRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
 
     closeLibraryButtons();
 }
@@ -458,6 +461,7 @@ function formSubmissionOn() {
     document.getElementById("submission-form").style.display = "block";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function marketRulesOn() {
@@ -490,6 +494,7 @@ function marketRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function showMarketDetails (market, data) {
@@ -499,11 +504,36 @@ function showMarketDetails (market, data) {
         <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
     `;
 }
+function rebillScreenOn() {
+    //const tabContainer = document.getElementById('rebill-screen-expand');
+   // tabContainer.innerHTML = '';
+
+    /*Object.keys(leases).sort().forEach(leaseid => {
+        const btn = document.createElement('button');
+        btn.innerText= leaseid;
+        btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
+        btn.onclick = () => showLeaseDetails(leaseid, leases[leaseid]);
+        tabContainer.appendChild(btn);
+    });*/
+
+    document.getElementById("rebill-screen-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+
+    closeLibraryButtons();
+}
+function openRebillDataForHome() {
+    document.getElementById("rebill-screen-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
+}
 function containerOff() {
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("submission-form").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     document.getElementById("close-box-window").style.display = "none";
     closeLibraryButtons();
 }
@@ -512,6 +542,7 @@ function showLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "block";
     document.getElementById("formSubmissionBtn").style.display = "block";
     document.getElementById("close-library-buttons").style.display = "block";
+    document.getElementById("rebillScrnBtn").style.display = "block";
     document.getElementById("libraryBtnClose").style.display = "block";
 }
 function closeLibraryButtons() {
@@ -519,6 +550,7 @@ function closeLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "none";
     document.getElementById("formSubmissionBtn").style.display = "none";
     document.getElementById("close-library-buttons").style.display = "none";
+    document.getElementById("rebillScrnBtn").style.display = "none";
     document.getElementById("libraryBtnClose").style.display = "none";
 
 }

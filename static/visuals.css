@@ -285,17 +285,19 @@ td {
     text-align: center;
     background: lightgrey;
     border: 1px solid black;
+    border-radius: 7px;
+    box-shadow: 0px 0px 20px 5px #0000008f;
 
     ul {
         padding: 0px;
         margin: 0px;
         min-width: 150px;
         list-style: none;
-
+        
         li {
             padding-bottom: 7px;
             padding-top: 7px;
-            border: 1px solid black;
+            border-radius: 7px;
             font-size: 12px;
 
             &:hover {
@@ -303,6 +305,16 @@ td {
                 cursor: pointer;
                 font-weight: bold;
             }
+        }
+
+        li.context-separator {
+            height: 1px;
+            width: 75%;
+            background-color: #888;
+            margin: 4px auto;
+            padding: 0;
+            pointer-events: none;
+            border: none;
         }
     }
 }
@@ -322,7 +334,7 @@ td {
     margin: 0;
 }
 
-#market-rules-expand, #lease-rules-expand {
+#market-rules-expand, #lease-rules-expand, #rebill-screen-expand {
     display: none;
     position: fixed;
     width: 25%;
@@ -348,7 +360,7 @@ td {
     margin: 0;
 }
 
-#submission-form, #editNoteScreen, #addRebillScreen {
+#submission-form, #editNoteScreen {
     display: none;
     top: 50%;
     left: 50%;
@@ -417,23 +429,7 @@ td {
 }
 }
 
-#open-lease-rules button, #open-market-rules button {
-    float: right;
-    margin-bottom: 10px;
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    position: relative;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-}
-
-#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn {
+#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn, #rebillScrnBtn {
     display:none;
 }
 
@@ -482,17 +478,14 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
 }
 #workspaceGrid, #progressReportGrid, #rebillGrid {
     height: 75vh;
-    width: 100%;
 }
 .ag-paging-panel {
     justify-content: flex-start !important;
 }
 .ag-body-vertical-scroll-viewport, .ag-body-vertical-scroll {
-    display: none !important;
+    margin: 0px !important;
 }
-.ag-center-cols-container, .ag-header-row.ag-header-row-column {
-    width: 100% !important;
-}
+
 .ag-cell-value {
     display: flex !important;
     line-height: 15px !important;
@@ -515,6 +508,9 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     .ag-cell-label-container {
         margin-left: 0 !important;
     }
+    .ag-header-cell-label {
+        margin-left: 0 !important;
+    }
 }
 .ag-cell.ag-column-first {
     margin-left: 10px;
@@ -533,13 +529,12 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     padding-left: 0 !important;
 }
 
-.ag-icon.ag-icon-filter {
-    --ag-icon-size: 8px !important;
+#workspaceGrid {
+    .ag-icon {
+     --ag-icon-size: 8px !important;
+    }
 }
-.ag-column-last {
-    margin-right: 0 !important;
-    padding-right: 0 !important;
-}
+
 .ag-center-cols-viewport, .ag-header-viewport {
     margin: 0 !important;
     width: 100% !important;
@@ -549,6 +544,10 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     .utility-true, .utility-nb, .utility-summ, .utility-vac {
         filter: saturate(1.5) brightness(.7);
     }
+}
+
+.ag-center-cols-clipper {
+    background-color: transparent !important;
 }
 
 /* utility column values */
