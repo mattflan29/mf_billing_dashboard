@@ -353,8 +353,36 @@ def get_monthly_records():
 
     return jsonify(output)
 
-@app.route('/api/workspace/rebills')
+@app.route('/workspace/rebills', methods=['POST'])
 def get_rebills_for_home():
+    data = request.get_json()
+    prop_code = data.get('home_code')
+    current_month = get_current_post_month()
+
+    if not prop_code:
+        return jsonify({"error": "Missing Prop Code"}), 400
+    
+    rebills = db.session.query(Rebills)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .filter(Home.prop_code == prop_code)\
+        .filter(Rebills.post_month == current_month)\
+        .all()
+    
+    output = []
+    for r in rebills:
+        output.append({
+            "rebill_id": r.rebill_id,
+            "note": r.rebill_note,
+            "handback": r.handback,
+            "responsible": r.responsible,
+            "qced_by": r.qced_by,
+            "timestamp": r.created_at
+        })
+
+    return jsonify({"status": "success", "rebills": output}), 200
+    
 #Unnecessary now?
 #@app.route('/get_lease_details/<int:lease_id>')
 #def get_lease_details(lease_id):

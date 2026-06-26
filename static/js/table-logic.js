@@ -26,6 +26,7 @@ const utilityClassRules = {
     'utility-bnv': params => params.value === 6,
     'utility-dnb': params => params.value === 7
 };
+//TODO: add in flag so button only populates if there's a rebill - most likely just editing current api call to check the rebill table
 const workspaceColumnData = [
     { field: "resident_id", headerName: "Resident ID", hide: true },
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
@@ -59,8 +60,7 @@ const workspaceColumnData = [
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { headerName: "Rebills", cellRenderer: function(params){
-        return '<button type="button" onclick="openRebillDataForHome()"> Open </button>'}},
+    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, sortable: true },
     { field: "billing_note", headerName: "Billing Note", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
@@ -113,6 +113,41 @@ const workspaceGridOptions = {
         }
     }
 };
+function rebillButtonRender(params) {
+    const button = document.createElement('button');
+    button.innerText = 'View Rebill';
+    button.className = 'rebill-button-format';
+    button.style.height = '25px';
+    button.style.fontSize = '11px';
+
+    button.addEventListener('click', () => {
+        checkCurrentRebills(params.data.home_code);
+    });
+    return button
+}
+async function checkCurrentRebills(propCode) {
+    try {
+        const response = await fetch('/workspace/rebills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({home_code: propCode})
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            if (result.rebills.length > 0) {
+                console.log(result.rebills);
+                rebillScreenOn(result.rebills);
+            } else {
+                alert('no rebills');
+            } 
+        } else {
+                alert("error fetching rebills: " + result.error);
+        } 
+    } catch (e) {
+            console.error("fetch error: ", e);
+    }
+}
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#workspaceGrid');
     workspaceGridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
@@ -504,11 +539,23 @@ function showMarketDetails (market, data) {
         <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
     `;
 }
-function rebillScreenOn() {
-    //const tabContainer = document.getElementById('rebill-screen-expand');
-   // tabContainer.innerHTML = '';
+function rebillScreenOn(rebills) {
+    const tabContainer = document.getElementById('rebill-screen-expand');
+    let content = `<h3>Rebill</h3>`;
 
-    /*Object.keys(leases).sort().forEach(leaseid => {
+    rebills.forEach(r => {
+        content += `
+        <div style="border: 1px solid #007bff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
+            <p style="margin: 5px 0;"><strong>Rebill Note: </strong>${r.note || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Handback?: </strong>${r.handback || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Billed By: </strong>${r.responsible || '-'}</p>
+            <p style="margin: 5px 0;"><strong>QCed By: </strong>${r.qced_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Timestamp: </strong>${r.timestamp || '-'}</p>
+        `;
+    });
+    tabContainer.innerHTML = content;
+
+    /*Object.keys(rebills).sort().forEach(leaseid => {
         const btn = document.createElement('button');
         btn.innerText= leaseid;
         btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
@@ -522,11 +569,9 @@ function rebillScreenOn() {
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
 
-    closeLibraryButtons();
-}
-function openRebillDataForHome() {
-    document.getElementById("rebill-screen-expand").style.display = "block";
-    document.getElementById("close-box-window").style.display = "block";
+    if (typeof closeLibraryButtons === "function") {
+        closeLibraryButtons();
+    }
 }
 function containerOff() {
     document.getElementById("form-overlay").style.display = "none";
