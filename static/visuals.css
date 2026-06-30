@@ -462,6 +462,7 @@ input[type="checkbox"] {
     --ag-border-color: #000000 !important;
     --ag-row-hover-color: #5c5c99c2 !important;
     --ag-selected-row-parent-background-color: #000000 !important;
+    --ag-secondary-border-color: rgba(0, 0, 0, 0.5) !important;
 
     .ag-popup-child, .ag-filter-menu {
         background-color: #f3f3ff !important;
@@ -551,6 +552,10 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
 }
 
 /* utility column values */
+.utility-col-formatting {
+    border-left-color: rgba(0, 0, 0, 0.5) !important;
+    justify-content: center !important;
+}
 .utility-false {
     background-color: #f5b1b7;
     border-right: 1px solid #cccce5 !important;

@@ -17,14 +17,7 @@ const utilitiesCellFormatting = (params) => {
     return map[params.value] !== undefined ? map[params.value] : "-";
 };
 const utilityClassRules = {
-    'utility-false': params => params.value === 0,
-    'utility-true': params => params.value === 1,
-    'utility-nb': params => params.value === 2,
-    'utility-summ': params => params.value === 3,
-    'utility-vac': params => params.value === 4,
-    'utility-cb': params => params.value === 5,
-    'utility-bnv': params => params.value === 6,
-    'utility-dnb': params => params.value === 7
+    'utility-col-formatting': params => params.value !== "",
 };
 //TODO: add in flag so button only populates if there's a rebill - most likely just editing current api call to check the rebill table
 const workspaceColumnData = [
@@ -64,19 +57,19 @@ const workspaceColumnData = [
     { field: "billing_note", headerName: "Billing Note", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
-    { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "sewer", headerName: "S", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "trash", headerName: "T", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "electric", headerName: "E", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "gas", headerName: "G", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "stormwater", headerName: "SW", headerClass: "utility-header sw", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "trash5", headerName: "T5", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "base_basic", headerName: "B", headerClass: "utility-header base", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "water2", headerName: "W2", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
+    { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer", headerName: "S", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash", headerName: "T", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric", headerName: "E", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas", headerName: "G", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "stormwater", headerName: "SW", headerClass: "utility-header sw", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash5", headerName: "T5", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "base_basic", headerName: "B", headerClass: "utility-header base", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "water2", headerName: "W2", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
 ];
 const workspaceGridOptions = {
     columnDefs: workspaceColumnData,
