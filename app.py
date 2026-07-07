@@ -274,16 +274,16 @@ def get_monthly_records():
 
     query = MonthlyData.query.filter(MonthlyData.post_month == current_month)\
         .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .filter(TeamRegister.email == current_user)\
         .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Rebills, MonthlyData.monthly_id == Rebills.monthly_id, isouter=True)\
         .join(Home, Resident.home_id == Home.home_id)\
         .join(Leases, Resident.lease_id == Leases.lease_id)\
-        .filter(TeamRegister.email == current_user)\
     .options(
         contains_eager(MonthlyData.resident).contains_eager(Resident.home),
-        contains_eager(MonthlyData.resident).contains_eager(Resident.lease)
+        contains_eager(MonthlyData.resident).contains_eager(Resident.lease),
+        contains_eager(MonthlyData.rebill_data),
     )
-
-    query = query.filter(Home.residents != None)
 
     if market_val and market_val != "":
         query = query.filter(Home.market == market_val)
@@ -300,6 +300,7 @@ def get_monthly_records():
     output = []
     for m in results:
         res = m.resident
+        reb = m.rebill_data
         h = res.home if res else None
         l = res.lease if res else None
 
@@ -326,6 +327,8 @@ def get_monthly_records():
             "irrigation": m.irrigation if m else "0",
             "base_basic": m.base_basic if m else "0",
             "stormwater": m.stormwater if m else "0",
+            #rebill info
+            "rebill": reb[0].rebill_id if reb else None,
             #resident info
             "resident_code": res.resident_code if res else None,
             "resident_id": res.resident_id if res else None,

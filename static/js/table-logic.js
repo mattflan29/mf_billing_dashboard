@@ -19,7 +19,6 @@ const utilitiesCellFormatting = (params) => {
 const utilityClassRules = {
     'utility-col-formatting': params => params.value !== "",
 };
-//TODO: add in flag so button only populates if there's a rebill - most likely just editing current api call to check the rebill table
 const workspaceColumnData = [
     { field: "resident_id", headerName: "Resident ID", hide: true },
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
@@ -52,10 +51,8 @@ const workspaceColumnData = [
         }, filter: true, sortable: true, width: 150 },
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, sortable: true },
-    { field: "billing_note", headerName: "Billing Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
+    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, deferRender: true, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
     { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
     { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
@@ -70,6 +67,8 @@ const workspaceColumnData = [
     { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
     { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
     { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true,
+         cellStyle: { whiteSpace: 'pre-wrap'} },
 ];
 const workspaceGridOptions = {
     columnDefs: workspaceColumnData,
@@ -107,6 +106,9 @@ const workspaceGridOptions = {
     }
 };
 function rebillButtonRender(params) {
+    if (!params.data || params.data.rebill === null) {
+        return "";
+    }
     const button = document.createElement('button');
     button.innerText = 'View Rebill';
     button.className = 'rebill-button-format';

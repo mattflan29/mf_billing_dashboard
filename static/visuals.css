@@ -551,6 +551,10 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     background-color: transparent !important;
 }
 
+.ag-paging-row-summary-panel {
+    display: block !important;
+}
+
 /* utility column values */
 .utility-col-formatting {
     border-left-color: rgba(0, 0, 0, 0.5) !important;
