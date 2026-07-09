@@ -19,6 +19,7 @@ const utilitiesCellFormatting = (params) => {
 const utilityClassRules = {
     'utility-col-formatting': params => params.value !== "",
 };
+//TODO: Decide how i want to handle whitespace(enters) for admin/billing notes. having makes scroll slow
 const workspaceColumnData = [
     { field: "resident_id", headerName: "Resident ID", hide: true },
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
@@ -52,7 +53,8 @@ const workspaceColumnData = [
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
-    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, deferRender: true, sortable: true },
+    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, 
+        cellRendererParams: { deferRender: true }, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
     { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
     { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
@@ -85,7 +87,7 @@ const workspaceGridOptions = {
     alwaysShowVerticalScroll: true,
     alwaysShowHorizontalScroll: false,
     pagination: true,
-    paginationPageSize: 10000,
+    paginationPageSize: 500,
     paginationPageSizeSelector: [1000, 2000, 5000, 10000],
 
     onFirstDataRendered: params => {
@@ -540,23 +542,17 @@ function rebillScreenOn(rebills) {
 
     rebills.forEach(r => {
         content += `
-        <div style="border: 1px solid #007bff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
+        <div style="border: 1px solid #8400ff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
             <p style="margin: 5px 0;"><strong>Rebill Note: </strong>${r.note || '-'}</p>
             <p style="margin: 5px 0;"><strong>Handback?: </strong>${r.handback || '-'}</p>
             <p style="margin: 5px 0;"><strong>Billed By: </strong>${r.responsible || '-'}</p>
             <p style="margin: 5px 0;"><strong>QCed By: </strong>${r.qced_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Fixed By: </strong>${r.fixed_by || '-'}</p>
             <p style="margin: 5px 0;"><strong>Timestamp: </strong>${r.timestamp || '-'}</p>
+        </div>
         `;
     });
     tabContainer.innerHTML = content;
-
-    /*Object.keys(rebills).sort().forEach(leaseid => {
-        const btn = document.createElement('button');
-        btn.innerText= leaseid;
-        btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
-        btn.onclick = () => showLeaseDetails(leaseid, leases[leaseid]);
-        tabContainer.appendChild(btn);
-    });*/
 
     document.getElementById("rebill-screen-expand").style.display = "block";
     document.getElementById("close-box-window").style.display = "block";
@@ -632,4 +628,19 @@ function clearSearch() {
     url.searchParams.delete('q');
     url.searchParams.set('page', 1);
     window.location.href = url.href;
+}
+
+function contextMenuCopyHomeCode(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const propCode = selectedRows[0].home_code;
+    navigator.clipboard.writeText(propCode).then(() => {
+        hideMenu();
+    });
+}
+function contextMenuCopyBillingEmail(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const email = selectedRows[0].mgmt_email;
+    navigator.clipboard.writeText(email).then(() => {
+        hideMenu();
+    });
 }

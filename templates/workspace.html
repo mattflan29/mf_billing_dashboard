@@ -196,19 +196,20 @@
 
 <div id="workspaceRightClick" class="workspace-right-click" style="display: none;">
     <ul>
-        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt to use the ag-grid context menu-->
-        <li>Copy Home Code</li>
-        <li>Copy BM Email</li>
+        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt sto use the ag-grid context menu-->
+        <li onclick="contextMenuCopyHomeCode()">Copy Home Code</li>
+        <li onclick="contextMenuCopyBillingEmail()">Copy Billing Email</li>
         <li class="context-separator"></li>
         <li onclick="editBillingNoteScreen()">Edit Note</li>
         <li class="context-separator"></li>
         <li>Open Library</li>
         <li class="context-separator"></li>
-        <li>Search by Home Code</li>
+        <li>Search by Home Code(?)</li>
     </ul>
 </div>
 
 <div>
+    <!--TODO: NEEDS WORK - formatting still ends up being funky and need initials added somewhere-->
     <form id="editNoteScreen" style="display: none;">
         <h2>Edit Billing Note</h2>
         <textarea id="editBillingNote" style="width: 99%; height: 50px;"></textarea>

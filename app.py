@@ -306,6 +306,9 @@ def get_monthly_records():
 
         output.append({
             #home info
+            "mgmt_email": h.management_company.billing_email if h.management_company else "",
+            "mgmt_co": h.management_company.mgmt_nickname,
+            "mgmt_co_id": h.mgmt_co_id,
             "home_code": h.prop_code,
             "market": h.market or "-",
             "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
@@ -379,8 +382,9 @@ def get_rebills_for_home():
             "rebill_id": r.rebill_id,
             "note": r.rebill_note,
             "handback": r.handback,
-            "responsible": r.responsible,
-            "qced_by": r.qced_by,
+            "responsible": r.responsible_user.nickname if r.responsible_user else "-",
+            "qced_by": r.qced_by_user.nickname if r.qced_by else "-",
+            "fixed-by": r.fixed_by_user.nickname if r.fixed_by else "-",
             "timestamp": r.created_at
         })
 
@@ -899,6 +903,7 @@ class ManagementCompanies(db.Model):
     mgmt_co = db.Column(db.String(255))
     mgmt_nickname = db.Column(db.String(100))
     mgmt_abbreviation = db.Column(db.String(5))
+    billing_email = db.Column(db.String(255))
 
     markets = db.relationship('MarketRules', backref='management_company', lazy=True)
     homes = db.relationship('Home', backref='management_company', lazy=True)
