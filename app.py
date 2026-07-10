@@ -70,6 +70,7 @@ def workspace():
 
     billed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['Billing Coordinator'])).all()
     qced_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['QC Specialist'])).all()
+    fixed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname)
     
     filtered_data = db.session.query(
         Home.market, Home.state, ManagementCompanies.id, ManagementCompanies.mgmt_co, MonthlyData.status)\
@@ -105,7 +106,8 @@ def workspace():
                            companies=companies,
                            status=status,
                            bc_list=billed_by_options,
-                           qc_list=qced_by_options)
+                           qc_list=qced_by_options,
+                           fixed_list=fixed_by_options)
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -113,59 +115,91 @@ def update_monthly_data():
     res_ids = data.get('res_id', [])
     current_month = get_current_post_month()
 
+    monthlyRecords = MonthlyData.query.filter(MonthlyData.post_month == current_month)\
+                               .filter(MonthlyData.resident_id.in_(res_ids))\
+                               .options(joinedload(MonthlyData.rebill_data)).all()
+    records_map = {m.resident_id: m for m in monthlyRecords}
     for r_id in res_ids:
-        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
-        
+        monthly = records_map.get(r_id)
         if not monthly:
             monthly = MonthlyData(resident_id=r_id, post_month=current_month)
             db.session.add(monthly)
 
-        if monthly:
-            if data.get('status'):
-                monthly.status = data['status']
+        if data.get('status'):
+            monthly.status = data['status']
 
-            if data.get('billing_note'):
-                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
-                new_billing_note_body = data['billing_note']
-            
-                formatted_billing_note = f"{timestamp} {new_billing_note_body}"
+        if data.get('billing_note'):
+            timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
+            new_billing_note_body = data['billing_note']    
+            formatted_billing_note = f"{timestamp} {new_billing_note_body}"
 
-                if data.get('append_billing_note') is True:
-                    existing_billing_note = monthly.billing_note if monthly.billing_note else ""
-                    if existing_billing_note:
-                        monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
-                    else:
-                        monthly.billing_note = formatted_billing_note
+            if data.get('append_billing_note') is True:
+                existing_billing_note = monthly.billing_note if monthly.billing_note else ""
+                if existing_billing_note:
+                    monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
                 else:
                     monthly.billing_note = formatted_billing_note
+            else:
+                monthly.billing_note = formatted_billing_note
 
-            billed_val = data.get('billed_by')
-            if billed_val == "unassigned":
-                monthly.billed_by = 123456
-            if billed_val and billed_val != "none":
-                if str(billed_val).isdigit():
-                    monthly.billed_by = int(billed_val)
-            if monthly.status and monthly.status.startswith('Approved') and not monthly.billed_by:
-                monthly.billed_by = active_user
+        billed_val = data.get('billed_by')
+        if billed_val == "unassigned":
+            monthly.billed_by = 123456
+        if billed_val and billed_val != "none":
+            if str(billed_val).isdigit():
+                monthly.billed_by = int(billed_val)
+        if monthly.status and monthly.status in (['Approved, Approved - Vacant Only']) and not monthly.billed_by:
+            monthly.billed_by = active_user
 
-            if data.get('action_note') in ['true', 'false']:
-                monthly.action_note = (data['action_note'] == 'true')
+        qced_val = data.get('qced_by')
+        if qced_val and qced_val != "none":
+            if str(qced_val).isdigit():
+                monthly.qced_by = int(qced_val)
+        if monthly.status and monthly.status in (['QC Complete', 'Rebill']) and not monthly.qced_by:
+            monthly.qced_by = active_user
 
-            qced_val = data.get('qced_by')
-            if qced_val and qced_val != "none":
-                if str(qced_val).isdigit():
-                    monthly.qced_by = int(qced_val)
-            if monthly.status and monthly.status in (['QC Complete', 'Rebill']) and not monthly.qced_by:
-                monthly.qced_by = active_user
+        if data.get('action_note') in ['true', 'false']:
+            monthly.action_note = (data['action_note'] == 'true')
 
-            utility_updates = data.get('utility_updates', {})
-            for utility, value in utility_updates.items():
-                if hasattr(monthly, utility):
-                    setattr(monthly, utility, int(value))
+        utility_updates = data.get('utility_updates', {})
+        for utility, value in utility_updates.items():
+            if hasattr(monthly, utility):
+                setattr(monthly, utility, int(value))
+
+        if monthly.rebill_data:
+            rebill = monthly.rebill_data[0]
+            fixed_by_val = data.get('fixed_by')
+
+            if fixed_by_val and fixed_by_val != "none":
+                if str(fixed_by_val).isdigit():
+                    rebill.fixed_by = int(fixed_by_val)
+            if monthly.status and monthly.status.startswith('Approved - Rebill') and not rebill.fixed_by:
+                rebill.fixed_by = active_user
 
     db.session.commit()
     return jsonify({"status": "success"}), 200
-            
+
+@app.route('/workspace/update_fixed_by', methods=['POST'])
+def update_fixed_by():
+    current_month = get_current_post_month()
+    data = request.get_json()
+    res_ids = data.get('res_id', [])
+    fixed_by_val = data.get('fixed_by')
+
+    if res_ids:
+        rebills = Rebills.query.join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+            .filter(Rebills.post_month == current_month)\
+            .filter(MonthlyData.resident_id.in_(res_ids)).all()
+        for r in rebills:
+            if fixed_by_val and fixed_by_val != "none":
+                if str(fixed_by_val).isdigit():
+                    r.fixed_by = int(fixed_by_val)
+            if r.status and r.status.startswith('Approved - Rebill') and not r.fixed_by:
+                r.fixed_by = active_user
+
+        db.session.commit()
+    return jsonify({"status": "success"}), 200
+
 @app.route('/workspace/update_billing_note', methods=['POST'])
 def update_billing_note():
     data = request.get_json()
@@ -384,7 +418,7 @@ def get_rebills_for_home():
             "handback": r.handback,
             "responsible": r.responsible_user.nickname if r.responsible_user else "-",
             "qced_by": r.qced_by_user.nickname if r.qced_by else "-",
-            "fixed-by": r.fixed_by_user.nickname if r.fixed_by else "-",
+            "fixed_by": r.fixed_by_user.nickname if r.fixed_by else "-",
             "timestamp": r.created_at
         })
 

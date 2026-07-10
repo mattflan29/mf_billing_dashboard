@@ -129,6 +129,15 @@
                     {% endfor %}
                 </select>
             </div>
+            <div>
+                <label for="">Update Fixed By:</label>
+                <select id="update-fixed-by">
+                    <option value="">--</option>
+                    {% for f in fixed_list %}
+                    <option value="{{ f.employee_id }}">{{ f.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
         </div>
 

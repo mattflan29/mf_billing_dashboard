@@ -286,9 +286,8 @@ async function submitBatchUpdate() {
         action_note: document.getElementById('update-action-note').value,
         billing_note: document.getElementById('update-billing-note').value,
         append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
-        quick_note: document.getElementById('update-quick-note').value,
-        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
         status: document.getElementById('update-status').value,
+        fixed_by: document.getElementById('update-fixed-by').value,
         utility_updates: utilityUpdates,
     };
 
@@ -298,7 +297,7 @@ async function submitBatchUpdate() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
+        
         if (response.ok) {
             alert("Updated successfully");
             containerOff();
@@ -541,6 +540,7 @@ function rebillScreenOn(rebills) {
     let content = `<h3>Rebill</h3>`;
 
     rebills.forEach(r => {
+        var newTimestamp = new Date(r.timestamp).toLocaleString();
         content += `
         <div style="border: 1px solid #8400ff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
             <p style="margin: 5px 0;"><strong>Rebill Note: </strong>${r.note || '-'}</p>
@@ -548,7 +548,7 @@ function rebillScreenOn(rebills) {
             <p style="margin: 5px 0;"><strong>Billed By: </strong>${r.responsible || '-'}</p>
             <p style="margin: 5px 0;"><strong>QCed By: </strong>${r.qced_by || '-'}</p>
             <p style="margin: 5px 0;"><strong>Fixed By: </strong>${r.fixed_by || '-'}</p>
-            <p style="margin: 5px 0;"><strong>Timestamp: </strong>${r.timestamp || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Timestamp: </strong>${newTimestamp || '-'}</p>
         </div>
         `;
     });
