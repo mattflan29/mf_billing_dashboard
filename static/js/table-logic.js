@@ -53,6 +53,7 @@ const workspaceColumnData = [
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
+    { field: "action_note", headerName: "Action?", sortable: true, width: 125 },
     { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, 
         cellRendererParams: { deferRender: true }, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },

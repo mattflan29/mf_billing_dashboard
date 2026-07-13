@@ -349,6 +349,7 @@ def get_monthly_records():
             "state": h.state,
             #monthly info
             "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
+            "action_note": m.action_note if m.action_note else "",
             "status": m.status if m else "-",
             "billing_note": m.billing_note if m else "-",
             "water": m.water if m else "0",
