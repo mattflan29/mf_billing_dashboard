@@ -283,19 +283,21 @@ td {
 .workspace-right-click {
     position: absolute;
     text-align: center;
-    background: lightgrey;
+    background: rgb(240, 240, 240);
     border: 1px solid black;
+    border-radius: 7px;
+    box-shadow: 0px 0px 20px 5px #0000008f;
 
     ul {
         padding: 0px;
         margin: 0px;
         min-width: 150px;
         list-style: none;
-
+        
         li {
             padding-bottom: 7px;
             padding-top: 7px;
-            border: 1px solid black;
+            border-radius: 7px;
             font-size: 12px;
 
             &:hover {
@@ -303,6 +305,16 @@ td {
                 cursor: pointer;
                 font-weight: bold;
             }
+        }
+
+        li.context-separator {
+            height: 1px;
+            width: 75%;
+            background-color: #888;
+            margin: 4px auto;
+            padding: 0;
+            pointer-events: none;
+            border: none;
         }
     }
 }
@@ -322,7 +334,7 @@ td {
     margin: 0;
 }
 
-#market-rules-expand, #lease-rules-expand {
+#market-rules-expand, #lease-rules-expand, #rebill-screen-expand {
     display: none;
     position: fixed;
     width: 25%;
@@ -417,23 +429,7 @@ td {
 }
 }
 
-#open-lease-rules button, #open-market-rules button {
-    float: right;
-    margin-bottom: 10px;
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    position: relative;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-}
-
-#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn {
+#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn, #rebillScrnBtn {
     display:none;
 }
 
@@ -466,6 +462,7 @@ input[type="checkbox"] {
     --ag-border-color: #000000 !important;
     --ag-row-hover-color: #5c5c99c2 !important;
     --ag-selected-row-parent-background-color: #000000 !important;
+    --ag-secondary-border-color: rgba(0, 0, 0, 0.5) !important;
 
     .ag-popup-child, .ag-filter-menu {
         background-color: #f3f3ff !important;
@@ -480,19 +477,16 @@ input[type="checkbox"] {
 ag-body-viewport.ag-layout-normal.ag-row-animation {
     margin: 0 !important;
 }
-#workspaceGrid, #progressReportGrid {
+#workspaceGrid, #progressReportGrid, #rebillGrid {
     height: 75vh;
-    width: 100%;
 }
 .ag-paging-panel {
     justify-content: flex-start !important;
 }
 .ag-body-vertical-scroll-viewport, .ag-body-vertical-scroll {
-    display: none !important;
+    margin: 0px !important;
 }
-.ag-center-cols-container, .ag-header-row.ag-header-row-column {
-    width: 100% !important;
-}
+
 .ag-cell-value {
     display: flex !important;
     line-height: 15px !important;
@@ -507,6 +501,28 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     margin-left: 10px !important;
     margin-right: 10px !important;
 }
+.ag-header-cell.ag-column-first {
+    padding-left: 0 !important;
+}
+.ag-header-cell-comp-wrapper  {
+    margin-left: 0 !important;
+    .ag-cell-label-container {
+        margin-left: 0 !important;
+    }
+    .ag-header-cell-label {
+        margin-left: 0 !important;
+    }
+}
+.ag-cell.ag-column-first {
+    margin-left: 10px;
+    margin-right: 10px !important;
+    border-left: 0px !important;
+    padding-right: 8px !important;
+    .ag-cell-wrapper, .ag-selection-checkbox {
+        margin-left: 0 !important;
+  }
+}
+
 .ag-cell.ag-cell-not-inline-editing.ag-cell-normal-height.ag-column-first {
     display: flex !important;
     justify-content: flex-start !important;
@@ -514,13 +530,12 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     padding-left: 0 !important;
 }
 
-.ag-icon.ag-icon-filter {
-    --ag-icon-size: 8px !important;
+#workspaceGrid {
+    .ag-icon {
+     --ag-icon-size: 8px !important;
+    }
 }
-.ag-column-last {
-    margin-right: 0 !important;
-    padding-right: 0 !important;
-}
+
 .ag-center-cols-viewport, .ag-header-viewport {
     margin: 0 !important;
     width: 100% !important;
@@ -532,7 +547,20 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
     }
 }
 
+.ag-center-cols-clipper {
+    background-color: transparent !important;
+}
+
+.ag-paging-row-summary-panel {
+    display: block !important;
+}
+
 /* utility column values */
+.utility-col-formatting {
+    border-left-color: rgba(0, 0, 0, 0.5) !important;
+    border-right-color: rgba(0, 0, 0, 0.5) !important;
+    justify-content: center !important;
+}
 .utility-false {
     background-color: #f5b1b7;
     border-right: 1px solid #cccce5 !important;

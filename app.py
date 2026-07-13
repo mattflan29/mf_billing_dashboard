@@ -70,6 +70,7 @@ def workspace():
 
     billed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['Billing Coordinator'])).all()
     qced_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname).filter(TeamRegister.role.in_(['QC Specialist'])).all()
+    fixed_by_options = db.session.query(TeamRegister.employee_id, TeamRegister.nickname)
     
     filtered_data = db.session.query(
         Home.market, Home.state, ManagementCompanies.id, ManagementCompanies.mgmt_co, MonthlyData.status)\
@@ -105,7 +106,8 @@ def workspace():
                            companies=companies,
                            status=status,
                            bc_list=billed_by_options,
-                           qc_list=qced_by_options)
+                           qc_list=qced_by_options,
+                           fixed_list=fixed_by_options)
 
 @app.route('/workspace/update_monthly_data', methods=['POST'])
 def update_monthly_data():
@@ -113,74 +115,91 @@ def update_monthly_data():
     res_ids = data.get('res_id', [])
     current_month = get_current_post_month()
 
+    monthlyRecords = MonthlyData.query.filter(MonthlyData.post_month == current_month)\
+                               .filter(MonthlyData.resident_id.in_(res_ids))\
+                               .options(joinedload(MonthlyData.rebill_data)).all()
+    records_map = {m.resident_id: m for m in monthlyRecords}
     for r_id in res_ids:
-        monthly = MonthlyData.query.filter_by(resident_id=r_id, post_month=current_month).first()
-        
+        monthly = records_map.get(r_id)
         if not monthly:
             monthly = MonthlyData(resident_id=r_id, post_month=current_month)
             db.session.add(monthly)
 
-        if monthly:
-            if data.get('status'):
-                monthly.status = data['status']
+        if data.get('status'):
+            monthly.status = data['status']
 
-            if data.get('quick_note'):
-                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
-                new_quick_note_body = data['quick_note']
-            
-                formatted_quick_note = f"{timestamp} {new_quick_note_body}"
+        if data.get('billing_note'):
+            timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
+            new_billing_note_body = data['billing_note']    
+            formatted_billing_note = f"{timestamp} {new_billing_note_body}"
 
-                if data.get('append_quick_note') is True:
-                    existing_quick_note = monthly.quick_note if monthly.quick_note else ""
-                    if existing_quick_note:
-                        monthly.quick_note = f"{existing_quick_note}\n{formatted_quick_note}"
-                    else:
-                        monthly.quick_note = formatted_quick_note
-                else:
-                    monthly.quick_note = formatted_quick_note
-
-            if data.get('billing_note'):
-                timestamp = datetime.now(tz).strftime("%#m/%#d/%y %#I:%M %p")
-                new_billing_note_body = data['billing_note']
-            
-                formatted_billing_note = f"{timestamp} {new_billing_note_body}"
-
-                if data.get('append_billing_note') is True:
-                    existing_billing_note = monthly.billing_note if monthly.billing_note else ""
-                    if existing_billing_note:
-                        monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
-                    else:
-                        monthly.billing_note = formatted_billing_note
+            if data.get('append_billing_note') is True:
+                existing_billing_note = monthly.billing_note if monthly.billing_note else ""
+                if existing_billing_note:
+                    monthly.billing_note = f"{existing_billing_note}\n{formatted_billing_note}"
                 else:
                     monthly.billing_note = formatted_billing_note
+            else:
+                monthly.billing_note = formatted_billing_note
 
-            billed_val = data.get('billed_by')
-            if billed_val == "unassigned":
-                monthly.billed_by = 123456
-            if billed_val and billed_val != "none":
-                if str(billed_val).isdigit():
-                    monthly.billed_by = int(billed_val)
-            if monthly.status and monthly.status.startswith('Approved') and not monthly.billed_by:
-                monthly.billed_by = active_user
+        billed_val = data.get('billed_by')
+        if billed_val == "unassigned":
+            monthly.billed_by = 123456
+        if billed_val and billed_val != "none":
+            if str(billed_val).isdigit():
+                monthly.billed_by = int(billed_val)
+        if monthly.status and monthly.status in (['Approved, Approved - Vacant Only']) and not monthly.billed_by:
+            monthly.billed_by = active_user
 
-            if data.get('action_note') in ['true', 'false']:
-                monthly.action_note = (data['action_note'] == 'true')
+        qced_val = data.get('qced_by')
+        if qced_val and qced_val != "none":
+            if str(qced_val).isdigit():
+                monthly.qced_by = int(qced_val)
+        if monthly.status and monthly.status in (['QC Complete', 'Rebill']) and not monthly.qced_by:
+            monthly.qced_by = active_user
 
-            qced_val = data.get('qced_by')
-            if qced_val and qced_val != "none":
-                if str(qced_val).isdigit():
-                    monthly.qced_by = int(qced_val)
-            if monthly.status and monthly.status in (['QC Complete', 'Rebill']) and not monthly.qced_by:
-                monthly.qced_by = active_user
+        if data.get('action_note') in ['true', 'false']:
+            monthly.action_note = (data['action_note'] == 'true')
 
-            utility_updates = data.get('utility_updates', {})
-            for utility, value in utility_updates.items():
-                if hasattr(monthly, utility):
-                    setattr(monthly, utility, int(value))
+        utility_updates = data.get('utility_updates', {})
+        for utility, value in utility_updates.items():
+            if hasattr(monthly, utility):
+                setattr(monthly, utility, int(value))
+
+        if monthly.rebill_data:
+            rebill = monthly.rebill_data[0]
+            fixed_by_val = data.get('fixed_by')
+
+            if fixed_by_val and fixed_by_val != "none":
+                if str(fixed_by_val).isdigit():
+                    rebill.fixed_by = int(fixed_by_val)
+            if monthly.status and monthly.status.startswith('Approved - Rebill') and not rebill.fixed_by:
+                rebill.fixed_by = active_user
 
     db.session.commit()
     return jsonify({"status": "success"}), 200
-            
+
+@app.route('/workspace/update_fixed_by', methods=['POST'])
+def update_fixed_by():
+    current_month = get_current_post_month()
+    data = request.get_json()
+    res_ids = data.get('res_id', [])
+    fixed_by_val = data.get('fixed_by')
+
+    if res_ids:
+        rebills = Rebills.query.join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+            .filter(Rebills.post_month == current_month)\
+            .filter(MonthlyData.resident_id.in_(res_ids)).all()
+        for r in rebills:
+            if fixed_by_val and fixed_by_val != "none":
+                if str(fixed_by_val).isdigit():
+                    r.fixed_by = int(fixed_by_val)
+            if r.status and r.status.startswith('Approved - Rebill') and not r.fixed_by:
+                r.fixed_by = active_user
+
+        db.session.commit()
+    return jsonify({"status": "success"}), 200
+
 @app.route('/workspace/update_billing_note', methods=['POST'])
 def update_billing_note():
     data = request.get_json()
@@ -239,24 +258,43 @@ def import_rebills():
     if request.method == 'POST':
         file = request.files.get('file')
         
-        if not file:
-            flash("No file selected!", "failure")
-        
         df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
         df = df.astype(object).replace({np.nan: None})
 
-        bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'Billing Coordinator').all()}
-        qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.filter(TeamRegister.role == 'QC Specialist').all()}
-        
+        current_pm = get_current_post_month()
+
+        bc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.all()}
+        qc_lookup = {tm.nickname: tm.employee_id for tm in TeamRegister.query.all()}
+        monthly_records = db.session.query(MonthlyData.monthly_id, Home.home_id, Home.prop_code)\
+                    .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+                    .join(Home, Resident.home_id == Home.home_id)\
+                    .filter(MonthlyData.post_month == current_pm).all()
+        monthly_id_lookup = {r.prop_code: r.monthly_id for r in monthly_records}
+        home_id_lookup = {r.prop_code: r.home_id for r in monthly_records} 
+
         for index, row in df.iterrows():
-            new_entry = TeamRegister(
-                role=clean_val(row.get('Position')),
-                name=clean_val(row.get('Name')),
-                nickname=clean_val(row.get('Nickname')),
-                email=clean_val(row.get('Email')),
-                manager_name=clean_val(row.get('Manager Nickname'))
+            prop_code = clean_val(row.get('Prop Code'))
+            home_id = home_id_lookup.get(prop_code)
+            monthly_id = monthly_id_lookup.get(prop_code)
+            responsible = bc_lookup.get(clean_val(row.get('Responsible')))
+            qced_by = qc_lookup.get(clean_val(row.get('QCed By')))
+            if clean_val(row.get('Handback?(Y/N)')) == "Y":
+                handback = 1
+            else: handback = 0
+            new_entry = Rebills(
+                monthly_id=monthly_id,
+                home_id=home_id,
+                responsible=responsible,
+                qced_by=qced_by,
+                rebill_note=clean_val(row.get('Rebill Note')),
+                handback=handback,
+                post_month=current_pm
             )
             db.session.add(new_entry)
+        db.session.commit()
+        flash("Rebills imported", "success")
+
+        return redirect(url_for('workspace'))
 
 @app.route('/api/monthly_records')
 def get_monthly_records():
@@ -270,16 +308,16 @@ def get_monthly_records():
 
     query = MonthlyData.query.filter(MonthlyData.post_month == current_month)\
         .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .filter(TeamRegister.email == current_user)\
         .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Rebills, MonthlyData.monthly_id == Rebills.monthly_id, isouter=True)\
         .join(Home, Resident.home_id == Home.home_id)\
         .join(Leases, Resident.lease_id == Leases.lease_id)\
-        .filter(TeamRegister.email == current_user)\
     .options(
         contains_eager(MonthlyData.resident).contains_eager(Resident.home),
-        contains_eager(MonthlyData.resident).contains_eager(Resident.lease)
+        contains_eager(MonthlyData.resident).contains_eager(Resident.lease),
+        contains_eager(MonthlyData.rebill_data),
     )
-
-    query = query.filter(Home.residents != None)
 
     if market_val and market_val != "":
         query = query.filter(Home.market == market_val)
@@ -296,19 +334,23 @@ def get_monthly_records():
     output = []
     for m in results:
         res = m.resident
+        reb = m.rebill_data
         h = res.home if res else None
         l = res.lease if res else None
 
         output.append({
             #home info
+            "mgmt_email": h.management_company.billing_email if h.management_company else "",
+            "mgmt_co": h.management_company.mgmt_nickname,
+            "mgmt_co_id": h.mgmt_co_id,
             "home_code": h.prop_code,
             "market": h.market or "-",
             "market_rules": h.mrkt_rls.market_rules if h.mrkt_rls else "-",
             "state": h.state,
             #monthly info
             "bc_assignee": m.bc_user.nickname if m.bc_user else "Unassigned",
+            "action_note": m.action_note if m.action_note else "",
             "status": m.status if m else "-",
-            "quick_note": m.quick_note if m else "-",
             "billing_note": m.billing_note if m else "-",
             "water": m.water if m else "0",
             "water2": m.water2 if m else "0",
@@ -323,6 +365,8 @@ def get_monthly_records():
             "irrigation": m.irrigation if m else "0",
             "base_basic": m.base_basic if m else "0",
             "stormwater": m.stormwater if m else "0",
+            #rebill info
+            "rebill": reb[0].rebill_id if reb else None,
             #resident info
             "resident_code": res.resident_code if res else None,
             "resident_id": res.resident_id if res else None,
@@ -350,6 +394,37 @@ def get_monthly_records():
 
     return jsonify(output)
 
+@app.route('/workspace/rebills', methods=['POST'])
+def get_rebills_for_home():
+    data = request.get_json()
+    prop_code = data.get('home_code')
+    current_month = get_current_post_month()
+
+    if not prop_code:
+        return jsonify({"error": "Missing Prop Code"}), 400
+    
+    rebills = db.session.query(Rebills)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .filter(Home.prop_code == prop_code)\
+        .filter(Rebills.post_month == current_month)\
+        .all()
+    
+    output = []
+    for r in rebills:
+        output.append({
+            "rebill_id": r.rebill_id,
+            "note": r.rebill_note,
+            "handback": r.handback,
+            "responsible": r.responsible_user.nickname if r.responsible_user else "-",
+            "qced_by": r.qced_by_user.nickname if r.qced_by else "-",
+            "fixed_by": r.fixed_by_user.nickname if r.fixed_by else "-",
+            "timestamp": r.created_at
+        })
+
+    return jsonify({"status": "success", "rebills": output}), 200
+    
 #Unnecessary now?
 #@app.route('/get_lease_details/<int:lease_id>')
 #def get_lease_details(lease_id):
@@ -403,10 +478,6 @@ def imports():
     if request.method == 'POST':
         file = request.files.get('file')
         table_choice = request.form.get('target_table')
-
-        if not file:
-            flash("No file selected!", "failure")
-            return redirect(url_for('imports'))
         
         df = pd.read_csv(file, encoding='ISO-8859-1') if file.filename.endswith('.csv') else pd.read_excel(file)
         df = df.astype(object).replace({np.nan: None})
@@ -579,7 +650,6 @@ def run_monthly_reset():
             old_rollout,
             md.action_note,
             md.billing_note,
-            md.quick_note,
             new_date,
             new_status,
             md.water,
@@ -598,7 +668,7 @@ def run_monthly_reset():
         ).where(md.post_month == current_pm)
 
         ins = insert(md).from_select(
-            ['resident_id', 'rollout', 'action_note', 'billing_note', 'quick_note',
+            ['resident_id', 'rollout', 'action_note', 'billing_note',
              'post_month', 'status', 'water', 'water2', 'sewer', 'sewer2', 'trash',
             'trash5', 'electric', 'electric2', 'gas', 'gas2_propane', 'irrigation',
             'base_basic', 'stormwater'], select_query)
@@ -622,7 +692,8 @@ def table_view():
         'Management Companies': ManagementCompanies,
         'Market Rules': MarketRules,
         'System Settings': SystemSettings,
-        'Monthly Data': MonthlyData
+        'Monthly Data': MonthlyData,
+        'Rebills': Rebills
     }
     target = request.args.get('table', 'Homes')
     search_query = request.args.get('q', '')
@@ -704,13 +775,18 @@ def get_progress_report():
         func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
         func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
         func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
-        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed')
-    ).join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed'),
+        func.count(db.distinct(Rebills.rebill_id)).label('rebills'),
+        func.count(db.distinct(case(( (Rebills.fixed_by.is_(None)) | (Rebills.fixed_by == ''), Rebills.rebill_id )))).label('unresolved_rebills')
+        ).select_from(Home)\
+     .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
      .outerjoin(Resident, Home.home_id == Resident.home_id)\
      .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month))\
+     .outerjoin(Rebills, (Rebills.monthly_id == MonthlyData.monthly_id) & (Rebills.post_month == current_month))\
      .filter(Home.state != None)\
      .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
      .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
+    
 
     output = []
     for r in results:
@@ -721,10 +797,133 @@ def get_progress_report():
             "new": r.new,
             "approved": r.approved,
             "qc_complete": r.qc_complete,
-            "mailed": r.mailed
+            "mailed": r.mailed,
+            "unresolved_rebills": r.unresolved_rebills,
+            "rebills": r.rebills
         })
 
     return jsonify(output)
+
+@app.route('/rebills')
+def rebills():
+    current_month = get_current_post_month()
+    
+    filtered_data = db.session.query(
+        Home.market, 
+        Home.state, 
+        ManagementCompanies.id, 
+        ManagementCompanies.mgmt_co, 
+        MonthlyData.status,
+        Rebills.fixed_by,
+        Rebills.post_month)\
+        .select_from(Rebills)\
+        .where(Rebills.post_month == current_month)\
+        .join(TeamRegister, Rebills.responsible == TeamRegister.employee_id)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        .all()
+    
+    markets_set = set()
+    states_set = set()
+    mgmtco_dict = {}
+    status_set = set()
+    fixed_by_options = set()
+    post_months = set()
+
+    for market, state, co_id, co_name, status, fixed_by, post_month in filtered_data:
+        if market: markets_set.add(market)
+        if state: states_set.add(state)
+        if co_id: mgmtco_dict[co_id] = co_name
+        if status: status_set.add(status)
+        if fixed_by: fixed_by_options.add({"id": fixed_by, "name": db.session.query(TeamRegister.nickname).filter(TeamRegister.employee_id == fixed_by).first().nickname})
+        if post_month: post_months.add(post_month)
+    states = sorted(list(states_set))
+    markets = sorted(list(markets_set))
+    status = sorted(list(status_set))
+    companies = [{"id": co_id, "mgmt_co": co_name} for co_id, co_name in mgmtco_dict.items()]
+    companies = sorted(companies, key=lambda x: x['mgmt_co'])
+    post_months = db.session.query(Rebills.post_month).distinct().order_by(desc(Rebills.post_month)).all()
+    fixed_by_options = sorted(list(fixed_by_options), key=lambda x: x['name'])
+
+    return render_template('rebills.html',
+                           title="Rebills", 
+                           states=states,
+                           markets=markets, 
+                           companies=companies,
+                           status=status,
+                           fixed_by_options=fixed_by_options,
+                           post_months=post_months)
+
+@app.route('/api/rebill_data')
+def get_rebill_data():
+    current_month = get_current_post_month()
+    market_val = request.args.get('market')
+    mgmt_val = request.args.get('mgmt')
+    state_val = request.args.get('state')
+    status_val = request.args.get('status')
+    fixed_by_val = request.args.get('fixed_by')
+
+    query = Rebills.query.filter(Rebills.post_month == current_month)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+    .options(
+        contains_eager(Rebills.monthly_data).contains_eager(MonthlyData.resident)\
+        .contains_eager(Resident.home)
+    )
+
+    query = query.filter(Home.residents != None)
+
+    if market_val and market_val != "":
+        query = query.filter(Home.market == market_val)
+    if mgmt_val and mgmt_val != "":
+        query = query.filter(Home.mgmt_co_id == int(mgmt_val))
+    if state_val and state_val != "":
+        query = query.filter(Home.state == state_val)
+    if status_val and status_val != "":
+        query = query.filter(MonthlyData.status == status_val)
+    if fixed_by_val and fixed_by_val != "":
+        query = query.filter(Rebills.fixed_by == int(fixed_by_val))
+
+    results = query.all()
+
+    output = []
+    for reb in results:
+        md = reb.monthly_data
+        res = md.resident
+        h = res.home if res else None
+
+        output.append({
+            #rebill info
+            "rebill_note": reb.rebill_note,
+            "post_month": reb.post_month.strftime('%#m/%#d/%Y') if reb and reb.post_month else "-",
+            "handback": reb.handback if reb else 0,
+            "responsible": reb.responsible_user.nickname if reb and reb.responsible_user else "Unassigned",
+            "qced_by": reb.qced_by_user.nickname if reb and reb.qced_by_user else "Unassigned",
+            "created_at": reb.created_at.strftime('%Y-%m-%d %H:%M:%S') if reb and reb.created_at else "-",
+            "fixed_by": reb.fixed_by_user.nickname if reb and reb.fixed_by_user else "",
+            #home info
+            "home_code": h.prop_code,
+            "market": h.market or "-",
+            "state": h.state,
+            "mgmt_co": h.management_company.mgmt_nickname if h and h.management_company else "-",
+            #monthly info
+            "bc_assignee": md.bc_user.nickname if md.bc_user else "Unassigned",
+            "status": md.status if md else "-",
+            "billing_note": md.billing_note if md else "-",
+            #resident info
+            "resident_code": res.resident_code if res else None,
+            "resident_id": res.resident_id if res else None,
+            "lease_id": res.lease.billing_lease_id if res and res.lease else "-",
+            "move_in": res.move_in if res else "-",
+            "renewal": res.renewal if res else "-",
+            "admin_notes": res.admin_notes if res else "-",
+        })
+    return jsonify(output)
+    
 
 # Tables
 class SystemSettings(db.Model):
@@ -739,6 +938,7 @@ class ManagementCompanies(db.Model):
     mgmt_co = db.Column(db.String(255))
     mgmt_nickname = db.Column(db.String(100))
     mgmt_abbreviation = db.Column(db.String(5))
+    billing_email = db.Column(db.String(255))
 
     markets = db.relationship('MarketRules', backref='management_company', lazy=True)
     homes = db.relationship('Home', backref='management_company', lazy=True)
@@ -824,7 +1024,6 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
-    quick_note = db.Column(db.String(255))
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
@@ -856,7 +1055,6 @@ class MonthlyData(db.Model):
             "rollout": self.rollout,
             "action_note": self.action_note,
             "billing_note": self.billing_note,
-            "quick_note": self.quick_note,
             "post_month": self.post_month,
             "status": self.status,
             "billed_by": self.billed_by_user.nickname if self.billed_by_user else "-",
@@ -877,6 +1075,11 @@ class Rebills(db.Model):
     rebill_note = db.Column(db.String(500))
     handback = db.Column(db.Boolean)
     created_at = db.Column(db.DateTime, default=datetime.now(tz=pytz.UTC))
+    post_month = db.Column(db.Date)
+
+    responsible_user = db.relationship('TeamRegister', foreign_keys=[responsible], backref='rebills_responsible', lazy=True)
+    qced_by_user = db.relationship('TeamRegister', foreign_keys=[qced_by], backref='rebills_qc', lazy=True)
+    fixed_by_user = db.relationship('TeamRegister', foreign_keys=[fixed_by], backref='rebills_fixed', lazy=True)
 
 
 @app.route('/api/data', methods=['GET'])

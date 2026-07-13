@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; margin: 1%">
+    <div style="display: flex;">
+        <div>
+            <label style="font-size: 12px;">Mgmt Co:</label>
+            <select id="mgmt_filter" name="mgmt_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All</option>
+                {% for co in companies %}
+                <option value="{{ co.id }}">{{ co.mgmt_co }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">State:</label>
+            <select id="state_filter" name="state_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All</option>
+                {% for s in states %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">Market:</label>
+            <select id="market_filter" name="market_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All</option>
+                {% for m in markets %}
+                <option value="{{ m }}">{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">Home Status:</label>
+            <select id="status_filter" name="status_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All</option>
+                {% for s in status %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">Post Month:</label>
+            <select id="pm_filter" name="pm_filter" style="padding: 5px; border-radius: 4px;">
+                {% for pm in post_months %}
+                <option value="{{ pm.post_month }}">{{ pm.post_month.strftime('%#m/%#d/%Y') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 12px;">Fixed By:</label>
+            <select id="fixed_by_filter" name="fixed_by_filter" style="padding: 5px; border-radius: 4px;">
+                <option value=""></option>
+                <option value="">All</option>
+                {% for user in fixed_by_options %}
+                <option value="{{ user.id }}">{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+
+        <button type="button" onclick="refreshGridData()"
+            style="height: 80%; margin: auto; padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Filter
+        </button>
+        <button type="button" onclick="window.location.href='{{ url_for('rebills') }}'"
+            style="font-size: 12px; color: gray; background:none; border:none; cursor:pointer;">
+            Clear All
+        </button>
+    </div>
+    <div style="display: flex;">
+        <button type="button" onclick="copySelectedToClipboard(this)" class="button-format">
+            Copy Selected to Clipboard
+        </button>
+        <button onclick="onBtnExportCSV()" class="button-format">Export to CSV</button>
+    </div>
+</div>
+
+<div id="rebillGrid" class="ag-theme-quartz-dark" style="margin: 0%; padding: 0%;"></div>
+
+<div id="close-box-window" onclick="containerOff()"></div>
+<div id="close-library-buttons" onclick="closeLibraryButtons()"></div>
+
+<div id="workspaceRightClick" class="workspace-right-click" style="display: none;">
+    <ul>
+        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt to use the ag-grid context menu-->
+        <li>Copy Home Code</li>
+        <li>Copy Email</li>
+        <li onclick="editBillingNoteScreen()">Edit Note</li>
+        <li>Open Library</li>
+        <li>Search by Home Code</li>
+    </ul>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
+<script>
+    document.addEventListener('click', function () {
+     const menu = document.getElementById('workspaceRightClick');
+     if (menu.style.display === 'block') {
+        hideMenu();
+     }});
+
+    function hideMenu() {
+    const menu = document.getElementById('workspaceRightClick');
+    if (menu) {
+        menu.style.display = 'none';
+        }
+    }
+
+</script>
+
+{% endblock %}
+
+</html>

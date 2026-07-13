@@ -65,6 +65,7 @@
 <div id="form-open">
     <button id="libraryBtnExpansion" onclick="showLibraryButtons()">+</button>
     <button id="libraryBtnClose" onclick="closeLibraryButtons()">-</button>
+    <button id="rebillScrnBtn" onclick="rebillScreenOn()">Rebills</button>
     <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
     <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
     <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
@@ -90,9 +91,20 @@
     </div>
 </div>
 
+<div id="rebill-screen-expand">
+    <div>
+        <button onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+        <h2>Rebills</h2>
+        <div id="rebill-view-container" style="display: flex; flex-wrap: wrap;"></div>
+        <div id="rebill-display-content"></div>
+    </div>
+</div>
+
 <div>
+    <div id="form-overlay" onclick="closeOverlays()"></div>
     <form id="submission-form">
-        <h2 style="margin-top: 0px;">Updates</h2>
+        <h2 style="margin-top: 0px;">Updates</hs2>
         <button type="button" onclick="containerOff()"
             style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
 
@@ -114,6 +126,15 @@
                     <option value="">--</option>
                     {% for q in qc_list %}
                     <option value="{{ q.employee_id }}">{{ q.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="">Update Fixed By:</label>
+                <select id="update-fixed-by">
+                    <option value="">--</option>
+                    {% for f in fixed_list %}
+                    <option value="{{ f.employee_id }}">{{ f.nickname }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -147,15 +168,6 @@
                 {% endfor %}
             </div>
 
-        
-        <label for="">Quick Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                replace)</label>
-        </div>
-        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
-
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-billing-note-checkbox">
@@ -184,7 +196,6 @@
         <button type="button" onclick="submitBatchUpdate()"
             style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
     </form>
-    <div id="form-overlay" onclick="closeOverlays()"></div>
 </div>
 
 <div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0%; padding: 0%;"></div>
@@ -194,16 +205,20 @@
 
 <div id="workspaceRightClick" class="workspace-right-click" style="display: none;">
     <ul>
-        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt to use the ag-grid context menu-->
-        <li>Copy Home Code</li>
-        <li>Copy BM Email</li>
+        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt sto use the ag-grid context menu-->
+        <li onclick="contextMenuCopyHomeCode()">Copy Home Code</li>
+        <li onclick="contextMenuCopyBillingEmail()">Copy Billing Email</li>
+        <li class="context-separator"></li>
         <li onclick="editBillingNoteScreen()">Edit Note</li>
+        <li class="context-separator"></li>
         <li>Open Library</li>
-        <li>Search by Home Code</li>
+        <li class="context-separator"></li>
+        <li>Search by Home Code(?)</li>
     </ul>
 </div>
 
 <div>
+    <!--TODO: NEEDS WORK - formatting still ends up being funky and need initials added somewhere-->
     <form id="editNoteScreen" style="display: none;">
         <h2>Edit Billing Note</h2>
         <textarea id="editBillingNote" style="width: 99%; height: 50px;"></textarea>
@@ -214,24 +229,25 @@
 </div>
 
 <div>
-    <form id="addRebillScreen" style="display: none;">
+    <div id="addRebillScreen" style="display: none;">
         <h2>Add Rebill</h2>
         <textarea id="addRebillNote" style="width: 99%; height: 50px;"></textarea>
 
-        <details name="import">
+        <div name="import">
         <summary id="leadership-tools"><strong>Import Rebills</strong></summary>
         <div style="padding: 10px; margin-top: 5px;">
             <form action="/workspace/import_rebills" method="POST" enctype="multipart/form-data">
                 <label>Upload File:</label>
-                <a href="{{ url_for('static', filename='Import_CSV_Templates/REBILLS_CSV_TEMPLATE.csv') }}" 
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/Rebills_CSV_TEMPLATE.csv') }}" 
                     download="Rebills.csv" 
                     style="margin-right: 50px; font-size: 14px;">
                     Download Template File</a>
-                <input type="file" name="file" accept=".csv, .xlsx">
+                <input type="file" name="file" accept=".csv, .xlsx" required>
                 <button type="submit" style="margin-top: 5px;">Import Rebills</button>
             </form>
-    </details>
-    </form>
+        </div>
+    </div>
+    </div>
     <div id="add-rebill-overlay" onclick="closeOverlays()"></div>
 
 </div>

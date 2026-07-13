@@ -1,5 +1,8 @@
 // table logic
 let workspaceGridApi;
+let progressGridApi;
+let rebillGridApi;
+// workspace grid
 const utilitiesCellFormatting = (params) => {
     const map = {
         0: 'F',
@@ -14,22 +17,16 @@ const utilitiesCellFormatting = (params) => {
     return map[params.value] !== undefined ? map[params.value] : "-";
 };
 const utilityClassRules = {
-    'utility-false': params => params.value === 0,
-    'utility-true': params => params.value === 1,
-    'utility-nb': params => params.value === 2,
-    'utility-summ': params => params.value === 3,
-    'utility-vac': params => params.value === 4,
-    'utility-cb': params => params.value === 5,
-    'utility-bnv': params => params.value === 6,
-    'utility-dnb': params => params.value === 7
+    'utility-col-formatting': params => params.value !== "",
 };
+//TODO: Decide how i want to handle whitespace(enters) for admin/billing notes. having makes scroll slow
 const workspaceColumnData = [
     { field: "resident_id", headerName: "Resident ID", hide: true },
     { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
     { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
     { field: "market", headerName: "Market", filter: true, sortable: true },
-    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true, width: 150 },
-    { field: "move_in", headerName: "Move-In Date", 
+    { field: "resident_code", headerName: "Res Acct", filter: true, sortable: true, width: 150 },
+    { field: "move_in", headerName: "Move-In", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -41,7 +38,7 @@ const workspaceColumnData = [
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
-    { field: "renewal", headerName: "Renewal Date", 
+    { field: "renewal", headerName: "Renewal", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -53,27 +50,28 @@ const workspaceColumnData = [
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
-    { field: "lease_id", headerName: "Lease ID", filter: true, sortable: true, width: 125 },
+    { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
     { field: "admin_notes", headerName:"Admin Notes", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "quick_note", headerName: "Quick Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "billing_note", headerName: "Billing Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
+    { field: "action_note", headerName: "Action?", sortable: true, width: 125 },
+    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, 
+        cellRendererParams: { deferRender: true }, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
-    { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "sewer", headerName: "S", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "trash", headerName: "T", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "electric", headerName: "E", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "gas", headerName: "G", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "stormwater", headerName: "SW", headerClass: "utility-header sw", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "trash5", headerName: "T5", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "base_basic", headerName: "B", headerClass: "utility-header base", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "water2", headerName: "W2", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
-    { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, filter: true, sortable: true, cellClassRules: utilityClassRules, width: 80 },
+    { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer", headerName: "S", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash", headerName: "T", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric", headerName: "E", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas", headerName: "G", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "stormwater", headerName: "SW", headerClass: "utility-header sw", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash5", headerName: "T5", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "base_basic", headerName: "B", headerClass: "utility-header base", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "water2", headerName: "W2", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true,
+         cellStyle: { whiteSpace: 'pre-wrap'} },
 ];
 const workspaceGridOptions = {
     columnDefs: workspaceColumnData,
@@ -87,8 +85,10 @@ const workspaceGridOptions = {
     autoSizeStrategy: {
         type: 'fitGridWidth'
     },
+    alwaysShowVerticalScroll: true,
+    alwaysShowHorizontalScroll: false,
     pagination: true,
-    paginationPageSize: 10000,
+    paginationPageSize: 500,
     paginationPageSizeSelector: [1000, 2000, 5000, 10000],
 
     onFirstDataRendered: params => {
@@ -108,32 +108,73 @@ const workspaceGridOptions = {
         }
     }
 };
+function rebillButtonRender(params) {
+    if (!params.data || params.data.rebill === null) {
+        return "";
+    }
+    const button = document.createElement('button');
+    button.innerText = 'View Rebill';
+    button.className = 'rebill-button-format';
+    button.style.height = '25px';
+    button.style.fontSize = '11px';
+
+    button.addEventListener('click', () => {
+        checkCurrentRebills(params.data.home_code);
+    });
+    return button
+}
+async function checkCurrentRebills(propCode) {
+    try {
+        const response = await fetch('/workspace/rebills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({home_code: propCode})
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            if (result.rebills.length > 0) {
+                console.log(result.rebills);
+                rebillScreenOn(result.rebills);
+            } else {
+                alert('no rebills');
+            } 
+        } else {
+                alert("error fetching rebills: " + result.error);
+        } 
+    } catch (e) {
+            console.error("fetch error: ", e);
+    }
+}
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#workspaceGrid');
     workspaceGridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
 
     refreshGridData();
 });
+// progress report grid
 const progressReportColumnData = [
     { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
     { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
     { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
     { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
     { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
-    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  }
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 }
 
 ];
 const progressReportGridOptions = {
     columnDefs: progressReportColumnData,
     rowData: [],
     autoSizeStrategy: {
-        type: 'fitGridWidth'
+        type: 'fitCellContents',
+        minWidth: 75
     },
     rowHeight: 25,
     //groupDefaultExpanded: 1,
     //suppressAggFuncInHeader: true,
 };
-let progressGridApi;
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#progressReportGrid');
     progressGridApi = agGrid.createGrid(gridDiv, progressReportGridOptions);
@@ -142,6 +183,50 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             progressGridApi.setGridOption('rowData', data);
+        });
+});
+// rebill grid
+const rebillCellFormatting = (params) => {
+    if (params.colDef.field === 'handback') {
+        return params.value ? '\u2713' : '';
+    }
+};
+const rebillColumnData = [
+    { field: "post_month", headerName: "Post Month", filter: true, sortable: true, width: 150  },
+    { field: "mgmt_co", headerName: "Management Co", filter: true, sortable: true, width: 150  },
+    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
+    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true, width: 150 },
+    { field: "responsible", headerName: "Billed By", filter: true, sortable: true, width: 150 },
+    { field: "qced_by", headerName: "QCed By", filter: true, sortable: true, width: 150 },
+    { field: "rebill_note", headerName: "Rebill Note", cellStyle: { whiteSpace: 'pre-wrap'}, filter: true, sortable: true, width: 300 },
+    { field: "handback", headerName: "Handback?", cellDataType: 'false', valueFormatter: rebillCellFormatting, filter: true, sortable: true, width: 150  },
+    { field: "fixed_by", headerName: "Fixed By", filter: true, sortable: true, width: 150 },
+];
+const rebillGridOptions = {
+    columnDefs: rebillColumnData,
+    rowData: [],
+    rowSelection: {
+        mode: 'multiRow',
+        headerCheckbox: true,
+        checkboxes: true,
+        enableClickSelection: false
+    },
+    autoSizeStrategy: {
+        type: 'fitCellContents'
+    },
+    embedFullWidthRows: true,
+    pagination: true,
+    paginationPageSize: 1000,
+    paginationPageSizeSelector: [100, 200, 500, 1000]
+};
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#rebillGrid');
+    rebillGridApi = agGrid.createGrid(gridDiv, rebillGridOptions);
+
+    fetch('/api/rebill_data')
+        .then(res => res.json())
+        .then(data => {
+            rebillGridApi.setGridOption('rowData', data);
         });
 });
 function onBtnExportCSV() {
@@ -202,9 +287,8 @@ async function submitBatchUpdate() {
         action_note: document.getElementById('update-action-note').value,
         billing_note: document.getElementById('update-billing-note').value,
         append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
-        quick_note: document.getElementById('update-quick-note').value,
-        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
         status: document.getElementById('update-status').value,
+        fixed_by: document.getElementById('update-fixed-by').value,
         utility_updates: utilityUpdates,
     };
 
@@ -214,7 +298,7 @@ async function submitBatchUpdate() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
+        
         if (response.ok) {
             alert("Updated successfully");
             containerOff();
@@ -378,6 +462,7 @@ function leaseRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
 
     closeLibraryButtons();
 }
@@ -408,6 +493,7 @@ function formSubmissionOn() {
     document.getElementById("submission-form").style.display = "block";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function marketRulesOn() {
@@ -440,6 +526,7 @@ function marketRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function showMarketDetails (market, data) {
@@ -449,11 +536,41 @@ function showMarketDetails (market, data) {
         <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
     `;
 }
+function rebillScreenOn(rebills) {
+    const tabContainer = document.getElementById('rebill-screen-expand');
+    let content = `<h3>Rebill</h3>`;
+
+    rebills.forEach(r => {
+        var newTimestamp = new Date(r.timestamp).toLocaleString();
+        content += `
+        <div style="border: 1px solid #8400ff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
+            <p style="margin: 5px 0;"><strong>Rebill Note: </strong>${r.note || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Handback?: </strong>${r.handback || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Billed By: </strong>${r.responsible || '-'}</p>
+            <p style="margin: 5px 0;"><strong>QCed By: </strong>${r.qced_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Fixed By: </strong>${r.fixed_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Timestamp: </strong>${newTimestamp || '-'}</p>
+        </div>
+        `;
+    });
+    tabContainer.innerHTML = content;
+
+    document.getElementById("rebill-screen-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+
+    if (typeof closeLibraryButtons === "function") {
+        closeLibraryButtons();
+    }
+}
 function containerOff() {
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("submission-form").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     document.getElementById("close-box-window").style.display = "none";
     closeLibraryButtons();
 }
@@ -462,6 +579,7 @@ function showLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "block";
     document.getElementById("formSubmissionBtn").style.display = "block";
     document.getElementById("close-library-buttons").style.display = "block";
+    document.getElementById("rebillScrnBtn").style.display = "block";
     document.getElementById("libraryBtnClose").style.display = "block";
 }
 function closeLibraryButtons() {
@@ -469,6 +587,7 @@ function closeLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "none";
     document.getElementById("formSubmissionBtn").style.display = "none";
     document.getElementById("close-library-buttons").style.display = "none";
+    document.getElementById("rebillScrnBtn").style.display = "none";
     document.getElementById("libraryBtnClose").style.display = "none";
 
 }
@@ -510,4 +629,19 @@ function clearSearch() {
     url.searchParams.delete('q');
     url.searchParams.set('page', 1);
     window.location.href = url.href;
+}
+
+function contextMenuCopyHomeCode(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const propCode = selectedRows[0].home_code;
+    navigator.clipboard.writeText(propCode).then(() => {
+        hideMenu();
+    });
+}
+function contextMenuCopyBillingEmail(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const email = selectedRows[0].mgmt_email;
+    navigator.clipboard.writeText(email).then(() => {
+        hideMenu();
+    });
 }
