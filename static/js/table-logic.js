@@ -2,6 +2,7 @@
 let workspaceGridApi;
 let progressGridApi;
 let rebillGridApi;
+let trackerGridApi;
 // workspace grid
 const utilitiesCellFormatting = (params) => {
     const map = {
@@ -183,6 +184,38 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             progressGridApi.setGridOption('rowData', data);
+        });
+});
+// tracker grid
+const trackerColumnData = [
+    { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
+    { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
+    { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
+    { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
+    { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 } 
+];
+const trackerGridOptions = {
+    columnDefs: trackerColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+    //groupDefaultExpanded: 1,
+    //suppressAggFuncInHeader: true,
+};
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#trackerGrid');
+    trackerGridApi = agGrid.createGrid(gridDiv, trackerGridOptions);
+
+    fetch('/api/tracker')
+        .then(res => res.json())
+        .then(data => {
+            trackerGridApi.setGridOption('rowData', data);
         });
 });
 // rebill grid

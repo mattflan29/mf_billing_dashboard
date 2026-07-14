@@ -393,6 +393,7 @@ def get_monthly_records():
         })
 
     return jsonify(output)
+    
 
 @app.route('/workspace/rebills', methods=['POST'])
 def get_rebills_for_home():
@@ -923,7 +924,71 @@ def get_rebill_data():
             "admin_notes": res.admin_notes if res else "-",
         })
     return jsonify(output)
+
+@app.route('/tracker')    
+def tracker():
+    current_month = get_current_post_month()
+    current_user = 117
     
+    status_counts = db.session.query(MonthlyData.status, func.count(MonthlyData.monthly_id))\
+                                .filter(MonthlyData.bc_assignee == current_user)\
+                                .filter(MonthlyData.post_month == current_month)\
+                                .group_by(MonthlyData.status).all()
+    
+    stats = {status: count for status, count in status_counts}
+    stats['total'] = sum(stats.values())
+
+    reb_counts = db.session.query(func.count(Rebills.handback))\
+                                  .filter((Rebills.responsible == current_user) & (Rebills.post_month == current_month))\
+                                  .scalar()
+
+    return render_template('tracker.html', 
+                           title="Tracker",
+                           stats=stats,
+                           reb_counts=reb_counts,
+                           current_month=current_month.strftime('%B %Y'))
+
+@app.route('/api/tracker')
+def my_tracker():
+    current_month = get_current_post_month()
+    current_user = 117
+
+    results = db.session.query(
+        Home.state, 
+        ManagementCompanies.mgmt_nickname,
+
+        func.count(Home.home_id).label('total'),
+        func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
+        func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
+        func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed'),
+        func.count(db.distinct(Rebills.rebill_id)).label('rebills'),
+        func.count(db.distinct(case(( (Rebills.fixed_by.is_(None)) | (Rebills.fixed_by == ''), Rebills.rebill_id )))).label('unresolved_rebills')
+        ).select_from(Home)\
+     .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+     .outerjoin(Resident, Home.home_id == Resident.home_id)\
+     .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month) & (MonthlyData.bc_assignee == current_user))\
+     .outerjoin(Rebills, (Rebills.monthly_id == MonthlyData.monthly_id) & (Rebills.post_month == current_month))\
+     .filter((Home.state != None) & (MonthlyData.bc_assignee == current_user))\
+     .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
+     .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
+    
+
+    output = []
+    for r in results:
+        output.append({
+            "state": r.state,
+            "management_co": r.mgmt_nickname,
+            "total": r.total,
+            "new": r.new,
+            "approved": r.approved,
+            "qc_complete": r.qc_complete,
+            "mailed": r.mailed,
+            "unresolved_rebills": r.unresolved_rebills,
+            "rebills": r.rebills
+        })
+
+    return jsonify(output)
 
 # Tables
 class SystemSettings(db.Model):

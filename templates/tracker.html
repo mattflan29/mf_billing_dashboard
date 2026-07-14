@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dashboard-container">
+    <!--<h1>Portfolio Status: {{ current_month }}</h1>-->
+    <hr>
+
+    <div>
+        <table style="width: 50%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Total Homes</th>
+                    <th>New</th>
+                    <th>Approved</th>
+                    <th>Approved-Rebill</th>
+                    <th>Mailed</th>
+                    <th>Rebills</th>
+                    <th>Remaining</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td>{{ stats.total }}</td>
+                    <td>{{ stats.get('New', 0) }}</td>
+                    <td>{{ stats.get('Approved', 0) }}</td>
+                    <td>{{ stats.get('Approved - Rebill', 0) }}</td>
+                    <td>{{ stats.get('Mailed', 0) }}</td>
+                    <td>{{ reb_counts }}</td>
+                    <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
+                    <td>{{ "%.2f%%" | format((1 - (reb_counts / (stats.total - stats.get('New', 0))))*100) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <hr>
+
+    <div id="trackerGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
+</div>
+
+{% endblock %}
+
+</html>

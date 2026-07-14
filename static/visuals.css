@@ -477,7 +477,7 @@ input[type="checkbox"] {
 ag-body-viewport.ag-layout-normal.ag-row-animation {
     margin: 0 !important;
 }
-#workspaceGrid, #progressReportGrid, #rebillGrid {
+#workspaceGrid, #progressReportGrid, #rebillGrid, #trackerGrid {
     height: 75vh;
 }
 .ag-paging-panel {
