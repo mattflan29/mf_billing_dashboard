@@ -3,6 +3,8 @@ let workspaceGridApi;
 let progressGridApi;
 let rebillGridApi;
 let trackerGridApi;
+let trackerHistoryGridApi;
+let trackerRebillGridApi;
 // workspace grid
 const utilitiesCellFormatting = (params) => {
     const map = {
@@ -208,14 +210,61 @@ const trackerGridOptions = {
     //groupDefaultExpanded: 1,
     //suppressAggFuncInHeader: true,
 };
+const trackerHistoryColumnData = [
+    { field: "post_month", headerName: "Post Month", sort: 'desc', sortable: true, width: 125 },
+    { field: "billed", headerName: "Billed", sortable: true, width: 75 },
+    { field: "handbacks", headerName: "Handbacks", sortable: true, width: 100 },
+    { field: "accuracy", headerName: "Accuracy", sortable: true, width: 100 },
+    { field: "timeliness", headerName: "Timeliness", sorttable: true, width: 100 }
+]
+const trackerHistoryGridOptions = {
+    columnDefs: trackerHistoryColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        minWidth: 75
+    },
+    rowHeight: 25,
+}
+const trackerRebillColumnData = [
+    { field: "home_code", headerName: "Prop Code", sort: 'desc', sortable: true },
+    { field: "market", headerName: "Market", sortable: true },
+    { field: "state", headerName: "State", sortable: true },
+    { field: "rebill_note", headerName: "Rebill", sortable: true },
+    { field: "fixed_by", headerName: "Fixed By", sorttable: true}
+]
+const trackerRebillGridOptions = {
+    columnDefs: trackerRebillColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+}
 document.addEventListener('DOMContentLoaded', () => {
-    const gridDiv = document.querySelector('#trackerGrid');
-    trackerGridApi = agGrid.createGrid(gridDiv, trackerGridOptions);
+    const trackerGridDiv = document.querySelector('#trackerGrid');
+    trackerGridApi = agGrid.createGrid(trackerGridDiv, trackerGridOptions);
+
+    const trackerHistoryGridDiv = document.querySelector('#trackerHistoryGrid');
+    trackerHistoryGridApi = agGrid.createGrid(trackerHistoryGridDiv, trackerHistoryGridOptions);
+
+    const trackerRebillGridDiv = document.querySelector('#trackerRebillGrid');
+    trackerRebillGridApi = agGrid.createGrid(trackerRebillGridDiv, trackerRebillGridOptions);
 
     fetch('/api/tracker')
         .then(res => res.json())
         .then(data => {
             trackerGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/history')
+        .then(res => res.json())
+        .then(data => {
+            trackerHistoryGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/rebills')
+        .then(res => res.json())
+        .then(data => {
+            trackerRebillGridApi.setGridOption('rowData', data);
         });
 });
 // rebill grid

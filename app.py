@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
 from sqlalchemy import func, extract, desc, text, case, insert, select
-from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy.orm import joinedload, contains_eager, aliased
 from dotenv import load_dotenv
 import os, enum, pandas as pd, numpy as np, io, csv, re, pytz
 
@@ -808,7 +808,8 @@ def get_progress_report():
 @app.route('/rebills')
 def rebills():
     current_month = get_current_post_month()
-    
+    fixedBy = aliased(TeamRegister)
+
     filtered_data = db.session.query(
         Home.market, 
         Home.state, 
@@ -816,7 +817,9 @@ def rebills():
         ManagementCompanies.mgmt_co, 
         MonthlyData.status,
         Rebills.fixed_by,
-        Rebills.post_month)\
+        Rebills.post_month,
+        fixedBy.nickname
+        )\
         .select_from(Rebills)\
         .where(Rebills.post_month == current_month)\
         .join(TeamRegister, Rebills.responsible == TeamRegister.employee_id)\
@@ -824,29 +827,35 @@ def rebills():
         .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
         .join(Home, Resident.home_id == Home.home_id)\
         .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        .outerjoin(fixedBy, Rebills.fixed_by == fixedBy.employee_id)\
         .all()
-    
+
     markets_set = set()
     states_set = set()
     mgmtco_dict = {}
     status_set = set()
-    fixed_by_options = set()
+    fixed_by_options = {}
     post_months = set()
 
-    for market, state, co_id, co_name, status, fixed_by, post_month in filtered_data:
+    for market, state, co_id, co_name, status, fixed_by, post_month, fixed_by_name in filtered_data:
         if market: markets_set.add(market)
         if state: states_set.add(state)
         if co_id: mgmtco_dict[co_id] = co_name
         if status: status_set.add(status)
-        if fixed_by: fixed_by_options.add({"id": fixed_by, "name": db.session.query(TeamRegister.nickname).filter(TeamRegister.employee_id == fixed_by).first().nickname})
         if post_month: post_months.add(post_month)
+        
+        if fixed_by and fixed_by not in fixed_by_options:
+            fixed_by_options[fixed_by] = {
+                'id': fixed_by, 
+                'name': fixed_by_name if fixed_by_name else "Unknown"
+            }
     states = sorted(list(states_set))
     markets = sorted(list(markets_set))
     status = sorted(list(status_set))
     companies = [{"id": co_id, "mgmt_co": co_name} for co_id, co_name in mgmtco_dict.items()]
     companies = sorted(companies, key=lambda x: x['mgmt_co'])
     post_months = db.session.query(Rebills.post_month).distinct().order_by(desc(Rebills.post_month)).all()
-    fixed_by_options = sorted(list(fixed_by_options), key=lambda x: x['name'])
+    fixed_by_options = sorted(fixed_by_options.values(), key=lambda x: x['name'])
 
     return render_template('rebills.html',
                            title="Rebills", 
@@ -858,6 +867,7 @@ def rebills():
                            post_months=post_months)
 
 @app.route('/api/rebill_data')
+#TODO: fix Filter button - not working
 def get_rebill_data():
     current_month = get_current_post_month()
     market_val = request.args.get('market')
@@ -930,6 +940,7 @@ def tracker():
     current_month = get_current_post_month()
     current_user = 117
     
+    tier = db.session.scalars(db.select(TeamStats.tier).where((TeamStats.employee_id == current_user) & (TeamStats.post_month == current_month))).first()
     status_counts = db.session.query(MonthlyData.status, func.count(MonthlyData.monthly_id))\
                                 .filter(MonthlyData.bc_assignee == current_user)\
                                 .filter(MonthlyData.post_month == current_month)\
@@ -946,6 +957,7 @@ def tracker():
                            title="Tracker",
                            stats=stats,
                            reb_counts=reb_counts,
+                           tier=tier,
                            current_month=current_month.strftime('%B %Y'))
 
 @app.route('/api/tracker')
@@ -988,6 +1000,78 @@ def my_tracker():
             "rebills": r.rebills
         })
 
+    return jsonify(output)
+
+@app.route('/api/tracker/history')
+def tracker_soe_history():
+    current_user = 117
+    results = db.session.scalars(db.select(TeamStats).where(TeamStats.employee_id == current_user)).all()
+
+    output = []
+    for r in results:
+        if r.billed and r.billed > 0:
+            pct = (1 - (r.handbacks / r.billed)) * 100
+            formatted_pct = f"{pct:.2f}%"
+        else:
+            formatted_pct = "0.0%"
+        
+        if r.homes_late and r.homes_late > 0:
+            timeliness = (1 - (r.homes_late / r.asgn_count)) * 100
+            formatted_timeliness = f"{timeliness:.2f}%"
+        else:
+            formatted_timeliness = "100%"
+
+        output.append({
+            "post_month": r.post_month.strftime('%#m/%#d/%Y'),
+            "billed": f"{r.billed or 0:,}",
+            "handbacks": r.handbacks,
+            "accuracy": formatted_pct,
+            "tier": r.tier,
+            "timeliness": formatted_timeliness
+        })
+    return jsonify(output)
+
+@app.route('/api/tracker/rebills')
+def tracker_rebills():
+    current_month = get_current_post_month()
+    current_user = 117
+
+    query = Rebills.query.filter(Rebills.post_month == current_month)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .filter(Rebills.responsible == current_user)\
+    .options(
+        contains_eager(Rebills.monthly_data).contains_eager(MonthlyData.resident)\
+        .contains_eager(Resident.home)
+    )
+
+    query = query.filter(Home.residents != None)
+
+    results = query.all()
+
+    output = []
+    for reb in results:
+        md = reb.monthly_data
+        res = md.resident
+        h = res.home if res else None
+
+        output.append({
+            #rebill info
+            "rebill_note": reb.rebill_note,
+            "post_month": reb.post_month.strftime('%#m/%#d/%Y') if reb and reb.post_month else "-",
+            "handback": reb.handback if reb else 0,
+            "responsible": reb.responsible_user.nickname if reb and reb.responsible_user else "Unassigned",
+            "qced_by": reb.qced_by_user.nickname if reb and reb.qced_by_user else "Unassigned",
+            "created_at": reb.created_at.strftime('%Y-%m-%d %H:%M:%S') if reb and reb.created_at else "-",
+            "fixed_by": reb.fixed_by_user.nickname if reb and reb.fixed_by_user else "",
+            #home info
+            "home_code": h.prop_code,
+            "market": h.market or "-",
+            "state": h.state,
+            "mgmt_co": h.management_company.mgmt_nickname if h and h.management_company else "-",
+            })
     return jsonify(output)
 
 # Tables
@@ -1146,6 +1230,20 @@ class Rebills(db.Model):
     qced_by_user = db.relationship('TeamRegister', foreign_keys=[qced_by], backref='rebills_qc', lazy=True)
     fixed_by_user = db.relationship('TeamRegister', foreign_keys=[fixed_by], backref='rebills_fixed', lazy=True)
 
+class TeamStats(db.Model):
+    __tablename__ = 'TeamStats'
+    stats_id = db.Column(db.Integer, primary_key=True)
+    post_month = db.Column(db.Date)
+    tier = db.Column(db.Integer)
+    employee_id = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    billed = db.Column(db.Integer)
+    handbacks = db.Column(db.Integer)
+    qced = db.Column(db.Integer)
+    qc_errors = db.Column(db.Integer)
+    homes_late = db.Column(db.Integer)
+    asgn_count = db.Column(db.Integer)
+
+    employee_id_user = db.relationship('TeamRegister', foreign_keys=[employee_id], backref='employee_stats', lazy=True)
 
 @app.route('/api/data', methods=['GET'])
 def get_data():
