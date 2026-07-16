@@ -393,7 +393,6 @@ def get_monthly_records():
         })
 
     return jsonify(output)
-    
 
 @app.route('/workspace/rebills', methods=['POST'])
 def get_rebills_for_home():
@@ -604,6 +603,24 @@ def imports():
                     lease_notes=clean_val(row.get('Lease Notes'))
                 )
                 db.session.add(new_entry)
+
+        elif table_choice == "Monthly Hours":
+            pm = request.form.get('monthly_hours_pm')
+            team_member_lookup = {tm.name: tm.employee_id for tm in TeamRegister.query.all()}
+            monthly_team_stats = TeamStats.query.filter(TeamStats.post_month == pm).all()
+            stats_records = {ts.employee_id: ts for ts in monthly_team_stats}
+            for index, row in df.iterrows():
+                team_mem_id = team_member_lookup.get(clean_val(row.get('Team Member Username')))
+                tm_hours = clean_val(row.get('Hours'))
+                ts_record = stats_records.get(team_mem_id)
+
+                if ts_record:
+                    ts_record.hours_worked = tm_hours
+                else: 
+                    print(f"  no teamstats record found for '{team_mem_id}'")
+
+            db.session.commit()
+
 
         db.session.commit()
         flash("File imported successfully!", "success")
@@ -1010,16 +1027,23 @@ def tracker_soe_history():
     output = []
     for r in results:
         if r.billed and r.billed > 0:
-            pct = (1 - (r.handbacks / r.billed)) * 100
+            pct = (1 - (float(r.handbacks or 0) / float(r.billed or 0))) * 100
             formatted_pct = f"{pct:.2f}%"
         else:
             formatted_pct = "0.0%"
         
         if r.homes_late and r.homes_late > 0:
-            timeliness = (1 - (r.homes_late / r.asgn_count)) * 100
+            timeliness = (1 - (float(r.homes_late or 0) / float(r.asgn_count or 0))) * 100
             formatted_timeliness = f"{timeliness:.2f}%"
         else:
             formatted_timeliness = "100%"
+
+        if r.hours_worked and float(r.hours_worked) > 0:
+            rph = float(r.billed or 0) / float(r.hours_worked or 0)
+
+            formatted_rph = f"{rph:.2f}"
+        else:
+            formatted_rph = "-"
 
         output.append({
             "post_month": r.post_month.strftime('%#m/%#d/%Y'),
@@ -1027,7 +1051,8 @@ def tracker_soe_history():
             "handbacks": r.handbacks,
             "accuracy": formatted_pct,
             "tier": r.tier,
-            "timeliness": formatted_timeliness
+            "timeliness": formatted_timeliness,
+            "rph": formatted_rph
         })
     return jsonify(output)
 
@@ -1242,6 +1267,7 @@ class TeamStats(db.Model):
     qc_errors = db.Column(db.Integer)
     homes_late = db.Column(db.Integer)
     asgn_count = db.Column(db.Integer)
+    hours_worked = db.Column(db.Numeric(5,2))
 
     employee_id_user = db.relationship('TeamRegister', foreign_keys=[employee_id], backref='employee_stats', lazy=True)
 

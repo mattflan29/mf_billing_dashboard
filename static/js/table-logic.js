@@ -211,17 +211,18 @@ const trackerGridOptions = {
     //suppressAggFuncInHeader: true,
 };
 const trackerHistoryColumnData = [
-    { field: "post_month", headerName: "Post Month", sort: 'desc', sortable: true, width: 125 },
-    { field: "billed", headerName: "Billed", sortable: true, width: 75 },
-    { field: "handbacks", headerName: "Handbacks", sortable: true, width: 100 },
-    { field: "accuracy", headerName: "Accuracy", sortable: true, width: 100 },
-    { field: "timeliness", headerName: "Timeliness", sorttable: true, width: 100 }
+    { field: "post_month", headerName: "PM", sort: 'desc', sortable: true },
+    { field: "rph", headerName: "R/H", sortable: true },
+    { field: "accuracy", headerName: "Accuracy", sortable: true },
+    { field: "billed", headerName: "Billed", sortable: true },
+    { field: "handbacks", headerName: "Handbacks", sortable: true },
+    { field: "timeliness", headerName: "Timeliness", sorttable: true }
 ]
 const trackerHistoryGridOptions = {
     columnDefs: trackerHistoryColumnData,
     rowData: [],
     autoSizeStrategy: {
-        minWidth: 75
+        type: 'fitGridWidth',
     },
     rowHeight: 25,
 }
