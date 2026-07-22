@@ -54,6 +54,7 @@ const workspaceColumnData = [
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
+    { field: "summ_acc_num", headerName: "Summ Acc", filter: true, sortable: true },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
     { field: "action_note", headerName: "Action?", sortable: true, width: 125 },

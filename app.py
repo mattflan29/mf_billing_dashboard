@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import func, extract, desc, text, case, insert, select
 from sqlalchemy.orm import joinedload, contains_eager, aliased
 from dotenv import load_dotenv
+from dateutil.relativedelta import relativedelta
 import os, enum, pandas as pd, numpy as np, io, csv, re, pytz
 
 load_dotenv()
@@ -63,6 +64,7 @@ def home_page():
     return render_template('home.html',
                            title="Home")
 
+# Workspace Page
 @app.route('/workspace')
 def workspace():
     current_month = get_current_post_month()
@@ -352,6 +354,7 @@ def get_monthly_records():
             "action_note": m.action_note if m.action_note else "",
             "status": m.status if m else "-",
             "billing_note": m.billing_note if m else "-",
+            "summ_acc_num": m.summ_acc_num if m else "-",
             "water": m.water if m else "0",
             "water2": m.water2 if m else "0",
             "sewer": m.sewer if m else "0",
@@ -424,13 +427,8 @@ def get_rebills_for_home():
         })
 
     return jsonify({"status": "success", "rebills": output}), 200
-    
-#Unnecessary now?
-#@app.route('/get_lease_details/<int:lease_id>')
-#def get_lease_details(lease_id):
-    #lease = Leases.query.get(lease_id)
-    #return render_template('partials/lease_details.html', lease=lease)
 
+# Billing Summary Page
 @app.route('/billing_summary')
 def billing_summary():
     page = request.args.get('page', 1, type=int)
@@ -473,6 +471,7 @@ def billing_summary():
                            status_counts=status_counts,
                            search_query=search_query)
 
+# Leadership Pages
 @app.route('/imports', methods=['GET','POST'])
 def imports():
     if request.method == 'POST':
@@ -558,7 +557,8 @@ def imports():
                     name=clean_val(row.get('Name')),
                     nickname=clean_val(row.get('Nickname')),
                     email=clean_val(row.get('Email')),
-                    manager_name=clean_val(row.get('Manager Nickname'))
+                    manager_name=clean_val(row.get('Manager Nickname')),
+                    current_emp=1
                 )
                 db.session.add(new_entry)
         
@@ -663,11 +663,13 @@ def run_monthly_reset():
             ((md.rollout == 1) & (md.status == 'Mailed'),0),
             else_=md.rollout
         )
+        
         select_query = select(
             md.resident_id,
             old_rollout,
             md.action_note,
             md.billing_note,
+            md.summ_acc_num,
             new_date,
             new_status,
             md.water,
@@ -686,7 +688,7 @@ def run_monthly_reset():
         ).where(md.post_month == current_pm)
 
         ins = insert(md).from_select(
-            ['resident_id', 'rollout', 'action_note', 'billing_note',
+            ['resident_id', 'rollout', 'action_note', 'billing_note', 'summ_acc_num',
              'post_month', 'status', 'water', 'water2', 'sewer', 'sewer2', 'trash',
             'trash5', 'electric', 'electric2', 'gas', 'gas2_propane', 'irrigation',
             'base_basic', 'stormwater'], select_query)
@@ -694,12 +696,39 @@ def run_monthly_reset():
         db.session.execute(ins)
         db.session.commit()
 
+        try:
+            ts = TeamStats
+            stats_select_query = select(
+                new_date,
+                ts.tier,
+                ts.employee_id,
+                ts.billed,
+                ts.handbacks,
+                ts.qced,
+                ts.qc_errors,
+                ts.homes_late,
+                ts.asgn_count,
+                ts.hours_worked
+            ).where(ts.post_month == (current_pm))
+            stats_ins = insert(TeamStats).from_select(
+                ['post_month', 'tier', 'employee_id', 'billed', 'handbacks', 'qced',
+                'qc_errors', 'homes_late', 'asgn_count', 'hours_worked'], stats_select_query)
+            db.session.execute(stats_ins)
+            db.session.commit()
+
+        #TODO: add in the actual math for updating the ts numbers for the previous PM
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": str(e)}), 500
+
         return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})
     
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
+# Table View Page
 @app.route('/table_view', methods=['GET','POST'])
 def table_view():
     table_map = {
@@ -731,6 +760,7 @@ def table_view():
                            current_table=target,
                            table_names=table_map.keys())
 
+# Progress Report Page
 @app.route('/progress_report', methods=['GET'])
 def progress_report():
     current_month = get_current_post_month()
@@ -822,6 +852,7 @@ def get_progress_report():
 
     return jsonify(output)
 
+# Rebills Page
 @app.route('/rebills')
 def rebills():
     current_month = get_current_post_month()
@@ -952,6 +983,7 @@ def get_rebill_data():
         })
     return jsonify(output)
 
+# Tracker Page
 @app.route('/tracker')    
 def tracker():
     current_month = get_current_post_month()
@@ -1049,8 +1081,8 @@ def tracker_soe_history():
             "post_month": r.post_month.strftime('%#m/%#d/%Y'),
             "billed": f"{r.billed or 0:,}",
             "handbacks": r.handbacks,
-            "accuracy": formatted_pct,
             "tier": r.tier,
+            "accuracy": formatted_pct,
             "timeliness": formatted_timeliness,
             "rph": formatted_rph
         })
@@ -1132,6 +1164,7 @@ class TeamRegister(db.Model):
     nickname = db.Column(db.String(50))
     email = db.Column(db.String(50))
     manager_name = db.Column(db.String(50), db.ForeignKey('TeamRegister.name'))
+    current_emp = db.Column(db.Boolean)
 
     manager = db.relationship('TeamRegister', remote_side=[name], backref='subordinates')
 
@@ -1198,6 +1231,7 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
+    summ_acc_num = db.Column(db.String(30))
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
@@ -1287,7 +1321,6 @@ def get_data():
         'current_page': pagination.page,
         'total_items': pagination.total
     })
-
 
 if __name__ == '__main__':
     app.run(debug=True)
