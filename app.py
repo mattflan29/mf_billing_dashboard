@@ -694,35 +694,42 @@ def run_monthly_reset():
             'base_basic', 'stormwater'], select_query)
 
         db.session.execute(ins)
+
+
+        ts = TeamStats
+        monthly_records = md.query.filter_by(post_month = current_pm).all()
+        rebill_records = Rebills.query.filter_by(post_month = current_pm).all()
+        current_pm_records = ts.query.filter_by(post_month = current_pm).all()
+        stats_map = {e.employee_id: e for e in current_pm_records}
+
+        for e, stats in stats_map.items():
+            stats = stats_map.get(e)
+            role = db.session.query(TeamRegister.role).filter_by(employee_id = e).scalar()
+
+            if role == "Billing Coordinator":
+                stats.billed = sum(1 for m in monthly_records if m.billed_by == e)
+                stats.handbacks = sum(1 for r in rebill_records if r.handback == 1 and r.responsible == e)
+                stats.asgn_count = sum(1 for m in monthly_records if m.bc_assignee == e)
+                #TODO: stats.homes_late = monthly_records.count(MonthlyData.bc_assignee == e, MonthlyData.on_time == 0)
+            if role == "QC Specialist":
+                stats.qced = sum(1 for m in monthly_records if m.qced_by == e)
+                ##TODO: stats.qc_errors = not sure how to calc this yet
+
+        current_emps = TeamRegister.query.filter(TeamRegister.current_emp == 1)\
+                                        .filter(TeamRegister.role.in_(['Billing Coordinator', 'Billing Manager', 'QC Specialist'])).all()
+        needs_stats = []
+        for emp in current_emps:
+            needs_stats.append(TeamStats(
+                post_month = new_date,
+                employee_id = emp.employee_id
+            ))
+
+        if needs_stats:
+            db.session.add_all(needs_stats)
+            
         db.session.commit()
 
-        try:
-            ts = TeamStats
-            stats_select_query = select(
-                new_date,
-                ts.tier,
-                ts.employee_id,
-                ts.billed,
-                ts.handbacks,
-                ts.qced,
-                ts.qc_errors,
-                ts.homes_late,
-                ts.asgn_count,
-                ts.hours_worked
-            ).where(ts.post_month == (current_pm))
-            stats_ins = insert(TeamStats).from_select(
-                ['post_month', 'tier', 'employee_id', 'billed', 'handbacks', 'qced',
-                'qc_errors', 'homes_late', 'asgn_count', 'hours_worked'], stats_select_query)
-            db.session.execute(stats_ins)
-            db.session.commit()
-
-        #TODO: add in the actual math for updating the ts numbers for the previous PM
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"success": False, "message": str(e)}), 500
-
-        return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})
+        return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})        
     
     except Exception as e:
         db.session.rollback()
@@ -1304,6 +1311,18 @@ class TeamStats(db.Model):
     hours_worked = db.Column(db.Numeric(5,2))
 
     employee_id_user = db.relationship('TeamRegister', foreign_keys=[employee_id], backref='employee_stats', lazy=True)
+
+class Deadlines(db.Model):
+    __tablename__ = 'Deadlines'
+    deadline_id = db.Column(db.Integer, primary_key=True)
+    mgmt_co_id = db.Column(db.Integer, db.ForeignKey(ManagementCompanies.id))
+    post_month = db.Column(db.Date)
+    deadline = db.Column(db.DateTime)
+    bill_w_out = db.Column(db.Date)
+    nb_check = db.Column(db.Date)
+    last_day_to_mail = (db.Date)
+
+    mgmt_co = db.relationship('ManagementCompanies', foreign_keys=[mgmt_co_id], backref='deadline_mgmt', lazy=True)
 
 @app.route('/api/data', methods=['GET'])
 def get_data():
