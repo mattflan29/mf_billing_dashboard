@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dashboard-container">
+    <!--<h1>Portfolio Status: {{ current_month }}</h1>-->
+    <hr>
+
+    <div id="tracker-header-data">
+        <table style="width: 50%; border-collapse: separate; border-spacing: 80px 0 ; padding: 0;">
+            <thead>
+                <tr>
+                    <th>Total Homes</th>
+                    <th>New</th>
+                    <th>Approved</th>
+                    <th>Approved-Rebill</th>
+                    <th>Mailed</th>
+                    <th>Handbacks</th>
+                    <th>Remaining</th>
+                    <th>Accuracy</th>
+                    <th>Tier</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td>{{ stats.total }}</td>
+                    <td>{{ stats.get('New', 0) }}</td>
+                    <td>{{ stats.get('Approved', 0) }}</td>
+                    <td>{{ stats.get('Approved - Rebill', 0) }}</td>
+                    <td>{{ stats.get('Mailed', 0) }}</td>
+                    <td>{{ reb_counts }}</td>
+                    <td>{{ stats.total - stats.get('Mailed', 0) }}</td>
+                    <td>{{ "%.2f%%" | format((1 - (reb_counts / (stats.total - stats.get('New', 0))))*100) }}</td>
+                    <td>{{ tier }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <hr>
+    <div id="tracker-grid-div">
+        <div id="trackerGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
+        <div id="trackerHistoryGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
+    </div>
+    <div id="trackerRebillGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
+</div>
+
+{% endblock %}
+
+</html>

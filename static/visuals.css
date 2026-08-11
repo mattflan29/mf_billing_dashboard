@@ -318,7 +318,14 @@ td {
         }
     }
 }
+.import-sections { 
+    display: flex;
+    justify-content: space-around;
+    details {
+        width: 40vw;
+    }
 
+}
 /* Form overlay */
 #form-overlay, #note-update-overlay, #add-rebill-overlay {
     position: fixed;
@@ -479,6 +486,24 @@ ag-body-viewport.ag-layout-normal.ag-row-animation {
 }
 #workspaceGrid, #progressReportGrid, #rebillGrid {
     height: 75vh;
+}
+#trackerGrid {
+    height: 50vh;
+    width: 70%;
+}
+#trackerHistoryGrid {
+    height: 50vh;
+    width: 27%;
+}
+#tracker-grid-div {
+    margin: 0px;
+    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+#trackerRebillGrid {
+    height: 20vh;
+    width: 100%;
 }
 .ag-paging-panel {
     justify-content: flex-start !important;

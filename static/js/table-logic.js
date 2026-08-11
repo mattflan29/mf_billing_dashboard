@@ -2,6 +2,9 @@
 let workspaceGridApi;
 let progressGridApi;
 let rebillGridApi;
+let trackerGridApi;
+let trackerHistoryGridApi;
+let trackerRebillGridApi;
 // workspace grid
 const utilitiesCellFormatting = (params) => {
     const map = {
@@ -51,6 +54,7 @@ const workspaceColumnData = [
             return dateA - dateB;
         }, filter: true, sortable: true, width: 150 },
     { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
+    { field: "summ_acc_num", headerName: "Summ Acc", filter: true, sortable: true },
     { field: "admin_notes", headerName:"Admin Notes", 
         filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
     { field: "action_note", headerName: "Action?", sortable: true, width: 125 },
@@ -183,6 +187,86 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             progressGridApi.setGridOption('rowData', data);
+        });
+});
+// tracker grid
+const trackerColumnData = [
+    { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
+    { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
+    { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
+    { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
+    { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 } 
+];
+const trackerGridOptions = {
+    columnDefs: trackerColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+    //groupDefaultExpanded: 1,
+    //suppressAggFuncInHeader: true,
+};
+const trackerHistoryColumnData = [
+    { field: "post_month", headerName: "PM", sort: 'desc', sortable: true },
+    { field: "rph", headerName: "R/H", sortable: true },
+    { field: "accuracy", headerName: "Accuracy", sortable: true },
+    { field: "billed", headerName: "Billed", sortable: true },
+    { field: "handbacks", headerName: "Handbacks", sortable: true },
+    { field: "timeliness", headerName: "Timeliness", sorttable: true }
+]
+const trackerHistoryGridOptions = {
+    columnDefs: trackerHistoryColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitGridWidth',
+    },
+    rowHeight: 25,
+}
+const trackerRebillColumnData = [
+    { field: "home_code", headerName: "Prop Code", sort: 'desc', sortable: true },
+    { field: "market", headerName: "Market", sortable: true },
+    { field: "state", headerName: "State", sortable: true },
+    { field: "rebill_note", headerName: "Rebill", sortable: true },
+    { field: "fixed_by", headerName: "Fixed By", sorttable: true}
+]
+const trackerRebillGridOptions = {
+    columnDefs: trackerRebillColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const trackerGridDiv = document.querySelector('#trackerGrid');
+    trackerGridApi = agGrid.createGrid(trackerGridDiv, trackerGridOptions);
+
+    const trackerHistoryGridDiv = document.querySelector('#trackerHistoryGrid');
+    trackerHistoryGridApi = agGrid.createGrid(trackerHistoryGridDiv, trackerHistoryGridOptions);
+
+    const trackerRebillGridDiv = document.querySelector('#trackerRebillGrid');
+    trackerRebillGridApi = agGrid.createGrid(trackerRebillGridDiv, trackerRebillGridOptions);
+
+    fetch('/api/tracker')
+        .then(res => res.json())
+        .then(data => {
+            trackerGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/history')
+        .then(res => res.json())
+        .then(data => {
+            trackerHistoryGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/rebills')
+        .then(res => res.json())
+        .then(data => {
+            trackerRebillGridApi.setGridOption('rowData', data);
         });
 });
 // rebill grid

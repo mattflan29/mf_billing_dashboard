@@ -3,8 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
 from sqlalchemy import func, extract, desc, text, case, insert, select
-from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy.orm import joinedload, contains_eager, aliased
 from dotenv import load_dotenv
+from dateutil.relativedelta import relativedelta
 import os, enum, pandas as pd, numpy as np, io, csv, re, pytz
 
 load_dotenv()
@@ -63,6 +64,7 @@ def home_page():
     return render_template('home.html',
                            title="Home")
 
+# Workspace Page
 @app.route('/workspace')
 def workspace():
     current_month = get_current_post_month()
@@ -302,7 +304,7 @@ def get_monthly_records():
     current_user = "awhitehead@conservice.com"
     market_val = request.args.get('market')
     mgmt_val = request.args.get('mgmt')
-    state_val = request.args.get('state')
+    state_val = 'WI' #request.args.get('state')
     status_val = request.args.get('status')
 
 
@@ -352,6 +354,7 @@ def get_monthly_records():
             "action_note": m.action_note if m.action_note else "",
             "status": m.status if m else "-",
             "billing_note": m.billing_note if m else "-",
+            "summ_acc_num": m.summ_acc_num if m else "-",
             "water": m.water if m else "0",
             "water2": m.water2 if m else "0",
             "sewer": m.sewer if m else "0",
@@ -424,13 +427,8 @@ def get_rebills_for_home():
         })
 
     return jsonify({"status": "success", "rebills": output}), 200
-    
-#Unnecessary now?
-#@app.route('/get_lease_details/<int:lease_id>')
-#def get_lease_details(lease_id):
-    #lease = Leases.query.get(lease_id)
-    #return render_template('partials/lease_details.html', lease=lease)
 
+# Billing Summary Page
 @app.route('/billing_summary')
 def billing_summary():
     page = request.args.get('page', 1, type=int)
@@ -473,6 +471,7 @@ def billing_summary():
                            status_counts=status_counts,
                            search_query=search_query)
 
+# Leadership Pages
 @app.route('/imports', methods=['GET','POST'])
 def imports():
     if request.method == 'POST':
@@ -558,7 +557,8 @@ def imports():
                     name=clean_val(row.get('Name')),
                     nickname=clean_val(row.get('Nickname')),
                     email=clean_val(row.get('Email')),
-                    manager_name=clean_val(row.get('Manager Nickname'))
+                    manager_name=clean_val(row.get('Manager Nickname')),
+                    current_emp=1
                 )
                 db.session.add(new_entry)
         
@@ -604,6 +604,24 @@ def imports():
                 )
                 db.session.add(new_entry)
 
+        elif table_choice == "Monthly Hours":
+            pm = request.form.get('monthly_hours_pm')
+            team_member_lookup = {tm.name: tm.employee_id for tm in TeamRegister.query.all()}
+            monthly_team_stats = TeamStats.query.filter(TeamStats.post_month == pm).all()
+            stats_records = {ts.employee_id: ts for ts in monthly_team_stats}
+            for index, row in df.iterrows():
+                team_mem_id = team_member_lookup.get(clean_val(row.get('Team Member Username')))
+                tm_hours = clean_val(row.get('Hours'))
+                ts_record = stats_records.get(team_mem_id)
+
+                if ts_record:
+                    ts_record.hours_worked = tm_hours
+                else: 
+                    print(f"  no teamstats record found for '{team_mem_id}'")
+
+            db.session.commit()
+
+
         db.session.commit()
         flash("File imported successfully!", "success")
         return redirect(url_for('imports'))
@@ -645,11 +663,13 @@ def run_monthly_reset():
             ((md.rollout == 1) & (md.status == 'Mailed'),0),
             else_=md.rollout
         )
+        
         select_query = select(
             md.resident_id,
             old_rollout,
             md.action_note,
             md.billing_note,
+            md.summ_acc_num,
             new_date,
             new_status,
             md.water,
@@ -668,20 +688,54 @@ def run_monthly_reset():
         ).where(md.post_month == current_pm)
 
         ins = insert(md).from_select(
-            ['resident_id', 'rollout', 'action_note', 'billing_note',
+            ['resident_id', 'rollout', 'action_note', 'billing_note', 'summ_acc_num',
              'post_month', 'status', 'water', 'water2', 'sewer', 'sewer2', 'trash',
             'trash5', 'electric', 'electric2', 'gas', 'gas2_propane', 'irrigation',
             'base_basic', 'stormwater'], select_query)
 
         db.session.execute(ins)
+
+
+        ts = TeamStats
+        monthly_records = md.query.filter_by(post_month = current_pm).all()
+        rebill_records = Rebills.query.filter_by(post_month = current_pm).all()
+        current_pm_records = ts.query.filter_by(post_month = current_pm).all()
+        stats_map = {e.employee_id: e for e in current_pm_records}
+
+        for e, stats in stats_map.items():
+            stats = stats_map.get(e)
+            role = db.session.query(TeamRegister.role).filter_by(employee_id = e).scalar()
+
+            if role == "Billing Coordinator":
+                stats.billed = sum(1 for m in monthly_records if m.billed_by == e)
+                stats.handbacks = sum(1 for r in rebill_records if r.handback == 1 and r.responsible == e)
+                stats.asgn_count = sum(1 for m in monthly_records if m.bc_assignee == e)
+                #TODO: stats.homes_late = monthly_records.count(MonthlyData.bc_assignee == e, MonthlyData.on_time == 0)
+            if role == "QC Specialist":
+                stats.qced = sum(1 for m in monthly_records if m.qced_by == e)
+                ##TODO: stats.qc_errors = not sure how to calc this yet
+
+        current_emps = TeamRegister.query.filter(TeamRegister.current_emp == 1)\
+                                        .filter(TeamRegister.role.in_(['Billing Coordinator', 'Billing Manager', 'QC Specialist'])).all()
+        needs_stats = []
+        for emp in current_emps:
+            needs_stats.append(TeamStats(
+                post_month = new_date,
+                employee_id = emp.employee_id
+            ))
+
+        if needs_stats:
+            db.session.add_all(needs_stats)
+            
         db.session.commit()
 
-        return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})
+        return jsonify({"success": True, "message": f"Post Month updated to {new_date}"})        
     
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
+# Table View Page
 @app.route('/table_view', methods=['GET','POST'])
 def table_view():
     table_map = {
@@ -713,6 +767,7 @@ def table_view():
                            current_table=target,
                            table_names=table_map.keys())
 
+# Progress Report Page
 @app.route('/progress_report', methods=['GET'])
 def progress_report():
     current_month = get_current_post_month()
@@ -804,10 +859,12 @@ def get_progress_report():
 
     return jsonify(output)
 
+# Rebills Page
 @app.route('/rebills')
 def rebills():
     current_month = get_current_post_month()
-    
+    fixedBy = aliased(TeamRegister)
+
     filtered_data = db.session.query(
         Home.market, 
         Home.state, 
@@ -815,7 +872,9 @@ def rebills():
         ManagementCompanies.mgmt_co, 
         MonthlyData.status,
         Rebills.fixed_by,
-        Rebills.post_month)\
+        Rebills.post_month,
+        fixedBy.nickname
+        )\
         .select_from(Rebills)\
         .where(Rebills.post_month == current_month)\
         .join(TeamRegister, Rebills.responsible == TeamRegister.employee_id)\
@@ -823,29 +882,35 @@ def rebills():
         .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
         .join(Home, Resident.home_id == Home.home_id)\
         .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+        .outerjoin(fixedBy, Rebills.fixed_by == fixedBy.employee_id)\
         .all()
-    
+
     markets_set = set()
     states_set = set()
     mgmtco_dict = {}
     status_set = set()
-    fixed_by_options = set()
+    fixed_by_options = {}
     post_months = set()
 
-    for market, state, co_id, co_name, status, fixed_by, post_month in filtered_data:
+    for market, state, co_id, co_name, status, fixed_by, post_month, fixed_by_name in filtered_data:
         if market: markets_set.add(market)
         if state: states_set.add(state)
         if co_id: mgmtco_dict[co_id] = co_name
         if status: status_set.add(status)
-        if fixed_by: fixed_by_options.add({"id": fixed_by, "name": db.session.query(TeamRegister.nickname).filter(TeamRegister.employee_id == fixed_by).first().nickname})
         if post_month: post_months.add(post_month)
+        
+        if fixed_by and fixed_by not in fixed_by_options:
+            fixed_by_options[fixed_by] = {
+                'id': fixed_by, 
+                'name': fixed_by_name if fixed_by_name else "Unknown"
+            }
     states = sorted(list(states_set))
     markets = sorted(list(markets_set))
     status = sorted(list(status_set))
     companies = [{"id": co_id, "mgmt_co": co_name} for co_id, co_name in mgmtco_dict.items()]
     companies = sorted(companies, key=lambda x: x['mgmt_co'])
     post_months = db.session.query(Rebills.post_month).distinct().order_by(desc(Rebills.post_month)).all()
-    fixed_by_options = sorted(list(fixed_by_options), key=lambda x: x['name'])
+    fixed_by_options = sorted(fixed_by_options.values(), key=lambda x: x['name'])
 
     return render_template('rebills.html',
                            title="Rebills", 
@@ -857,6 +922,7 @@ def rebills():
                            post_months=post_months)
 
 @app.route('/api/rebill_data')
+#TODO: fix Filter button - not working
 def get_rebill_data():
     current_month = get_current_post_month()
     market_val = request.args.get('market')
@@ -923,7 +989,154 @@ def get_rebill_data():
             "admin_notes": res.admin_notes if res else "-",
         })
     return jsonify(output)
+
+# Tracker Page
+@app.route('/tracker')    
+def tracker():
+    current_month = get_current_post_month()
+    current_user = 117
     
+    tier = db.session.scalars(db.select(TeamStats.tier).where((TeamStats.employee_id == current_user) & (TeamStats.post_month == current_month))).first()
+    status_counts = db.session.query(MonthlyData.status, func.count(MonthlyData.monthly_id))\
+                                .filter(MonthlyData.bc_assignee == current_user)\
+                                .filter(MonthlyData.post_month == current_month)\
+                                .group_by(MonthlyData.status).all()
+    
+    stats = {status: count for status, count in status_counts}
+    stats['total'] = sum(stats.values())
+
+    reb_counts = db.session.query(func.count(Rebills.handback))\
+                                  .filter((Rebills.responsible == current_user) & (Rebills.post_month == current_month))\
+                                  .scalar()
+
+    return render_template('tracker.html', 
+                           title="Tracker",
+                           stats=stats,
+                           reb_counts=reb_counts,
+                           tier=tier,
+                           current_month=current_month.strftime('%B %Y'))
+
+@app.route('/api/tracker')
+def my_tracker():
+    current_month = get_current_post_month()
+    current_user = 117
+
+    results = db.session.query(
+        Home.state, 
+        ManagementCompanies.mgmt_nickname,
+
+        func.count(Home.home_id).label('total'),
+        func.sum(case((MonthlyData.status == 'New',1), else_=0)).label('new'),
+        func.sum(case((MonthlyData.status == 'Approved',1), else_=0)).label('approved'),
+        func.sum(case((MonthlyData.status == 'QC Complete',1), else_=0)).label('qc_complete'),
+        func.sum(case((MonthlyData.status == 'Mailed',1), else_=0)).label('mailed'),
+        func.count(db.distinct(Rebills.rebill_id)).label('rebills'),
+        func.count(db.distinct(case(( (Rebills.fixed_by.is_(None)) | (Rebills.fixed_by == ''), Rebills.rebill_id )))).label('unresolved_rebills')
+        ).select_from(Home)\
+     .join(ManagementCompanies, Home.mgmt_co_id == ManagementCompanies.id)\
+     .outerjoin(Resident, Home.home_id == Resident.home_id)\
+     .outerjoin(MonthlyData, (Resident.resident_id == MonthlyData.resident_id) & (MonthlyData.post_month == current_month) & (MonthlyData.bc_assignee == current_user))\
+     .outerjoin(Rebills, (Rebills.monthly_id == MonthlyData.monthly_id) & (Rebills.post_month == current_month))\
+     .filter((Home.state != None) & (MonthlyData.bc_assignee == current_user))\
+     .order_by(ManagementCompanies.mgmt_nickname, Home.state)\
+     .group_by(Home.state, ManagementCompanies.mgmt_nickname).all()
+    
+
+    output = []
+    for r in results:
+        output.append({
+            "state": r.state,
+            "management_co": r.mgmt_nickname,
+            "total": r.total,
+            "new": r.new,
+            "approved": r.approved,
+            "qc_complete": r.qc_complete,
+            "mailed": r.mailed,
+            "unresolved_rebills": r.unresolved_rebills,
+            "rebills": r.rebills
+        })
+
+    return jsonify(output)
+
+@app.route('/api/tracker/history')
+def tracker_soe_history():
+    current_user = 117
+    results = db.session.scalars(db.select(TeamStats).where(TeamStats.employee_id == current_user)).all()
+
+    output = []
+    for r in results:
+        if r.billed and r.billed > 0:
+            pct = (1 - (float(r.handbacks or 0) / float(r.billed or 0))) * 100
+            formatted_pct = f"{pct:.2f}%"
+        else:
+            formatted_pct = "0.0%"
+        
+        if r.homes_late and r.homes_late > 0:
+            timeliness = (1 - (float(r.homes_late or 0) / float(r.asgn_count or 0))) * 100
+            formatted_timeliness = f"{timeliness:.2f}%"
+        else:
+            formatted_timeliness = "100%"
+
+        if r.hours_worked and float(r.hours_worked) > 0:
+            rph = float(r.billed or 0) / float(r.hours_worked or 0)
+
+            formatted_rph = f"{rph:.2f}"
+        else:
+            formatted_rph = "-"
+
+        output.append({
+            "post_month": r.post_month.strftime('%#m/%#d/%Y'),
+            "billed": f"{r.billed or 0:,}",
+            "handbacks": r.handbacks,
+            "tier": r.tier,
+            "accuracy": formatted_pct,
+            "timeliness": formatted_timeliness,
+            "rph": formatted_rph
+        })
+    return jsonify(output)
+
+@app.route('/api/tracker/rebills')
+def tracker_rebills():
+    current_month = get_current_post_month()
+    current_user = 117
+
+    query = Rebills.query.filter(Rebills.post_month == current_month)\
+        .join(MonthlyData, Rebills.monthly_id == MonthlyData.monthly_id)\
+        .join(TeamRegister, MonthlyData.bc_assignee == TeamRegister.employee_id)\
+        .join(Resident, MonthlyData.resident_id == Resident.resident_id)\
+        .join(Home, Resident.home_id == Home.home_id)\
+        .filter(Rebills.responsible == current_user)\
+    .options(
+        contains_eager(Rebills.monthly_data).contains_eager(MonthlyData.resident)\
+        .contains_eager(Resident.home)
+    )
+
+    query = query.filter(Home.residents != None)
+
+    results = query.all()
+
+    output = []
+    for reb in results:
+        md = reb.monthly_data
+        res = md.resident
+        h = res.home if res else None
+
+        output.append({
+            #rebill info
+            "rebill_note": reb.rebill_note,
+            "post_month": reb.post_month.strftime('%#m/%#d/%Y') if reb and reb.post_month else "-",
+            "handback": reb.handback if reb else 0,
+            "responsible": reb.responsible_user.nickname if reb and reb.responsible_user else "Unassigned",
+            "qced_by": reb.qced_by_user.nickname if reb and reb.qced_by_user else "Unassigned",
+            "created_at": reb.created_at.strftime('%Y-%m-%d %H:%M:%S') if reb and reb.created_at else "-",
+            "fixed_by": reb.fixed_by_user.nickname if reb and reb.fixed_by_user else "",
+            #home info
+            "home_code": h.prop_code,
+            "market": h.market or "-",
+            "state": h.state,
+            "mgmt_co": h.management_company.mgmt_nickname if h and h.management_company else "-",
+            })
+    return jsonify(output)
 
 # Tables
 class SystemSettings(db.Model):
@@ -958,6 +1171,7 @@ class TeamRegister(db.Model):
     nickname = db.Column(db.String(50))
     email = db.Column(db.String(50))
     manager_name = db.Column(db.String(50), db.ForeignKey('TeamRegister.name'))
+    current_emp = db.Column(db.Boolean)
 
     manager = db.relationship('TeamRegister', remote_side=[name], backref='subordinates')
 
@@ -1024,6 +1238,7 @@ class MonthlyData(db.Model):
     rollout = db.Column(db.Boolean)
     action_note = db.Column(db.Boolean)
     billing_note = db.Column(db.String(500))
+    summ_acc_num = db.Column(db.String(30))
     post_month = db.Column(db.Date)
     status = db.Column(db.String(255))
     billed_by = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
@@ -1081,6 +1296,33 @@ class Rebills(db.Model):
     qced_by_user = db.relationship('TeamRegister', foreign_keys=[qced_by], backref='rebills_qc', lazy=True)
     fixed_by_user = db.relationship('TeamRegister', foreign_keys=[fixed_by], backref='rebills_fixed', lazy=True)
 
+class TeamStats(db.Model):
+    __tablename__ = 'TeamStats'
+    stats_id = db.Column(db.Integer, primary_key=True)
+    post_month = db.Column(db.Date)
+    tier = db.Column(db.Integer)
+    employee_id = db.Column(db.Integer, db.ForeignKey('TeamRegister.employee_id'))
+    billed = db.Column(db.Integer)
+    handbacks = db.Column(db.Integer)
+    qced = db.Column(db.Integer)
+    qc_errors = db.Column(db.Integer)
+    homes_late = db.Column(db.Integer)
+    asgn_count = db.Column(db.Integer)
+    hours_worked = db.Column(db.Numeric(5,2))
+
+    employee_id_user = db.relationship('TeamRegister', foreign_keys=[employee_id], backref='employee_stats', lazy=True)
+
+class Deadlines(db.Model):
+    __tablename__ = 'Deadlines'
+    deadline_id = db.Column(db.Integer, primary_key=True)
+    mgmt_co_id = db.Column(db.Integer, db.ForeignKey(ManagementCompanies.id))
+    post_month = db.Column(db.Date)
+    deadline = db.Column(db.DateTime)
+    bill_w_out = db.Column(db.Date)
+    nb_check = db.Column(db.Date)
+    last_day_to_mail = (db.Date)
+
+    mgmt_co = db.relationship('ManagementCompanies', foreign_keys=[mgmt_co_id], backref='deadline_mgmt', lazy=True)
 
 @app.route('/api/data', methods=['GET'])
 def get_data():
@@ -1098,7 +1340,6 @@ def get_data():
         'current_page': pagination.page,
         'total_items': pagination.total
     })
-
 
 if __name__ == '__main__':
     app.run(debug=True)
