@@ -304,7 +304,7 @@ def get_monthly_records():
     current_user = "awhitehead@conservice.com"
     market_val = request.args.get('market')
     mgmt_val = request.args.get('mgmt')
-    state_val = request.args.get('state')
+    state_val = 'WI' #request.args.get('state')
     status_val = request.args.get('status')
 
 
