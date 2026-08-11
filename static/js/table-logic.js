@@ -1,13 +1,35 @@
-let gridApi;
-
 // table logic
+let workspaceGridApi;
+let progressGridApi;
+let rebillGridApi;
+let trackerGridApi;
+let trackerHistoryGridApi;
+let trackerRebillGridApi;
+// workspace grid
+const utilitiesCellFormatting = (params) => {
+    const map = {
+        0: 'F',
+        1: '',
+        2: 'NB',
+        3: "Summ",
+        4: "Vac",
+        5: "CB",
+        6: "B/NV",
+        7: "DNB"
+    };
+    return map[params.value] !== undefined ? map[params.value] : "-";
+};
+const utilityClassRules = {
+    'utility-col-formatting': params => params.value !== "",
+};
+//TODO: Decide how i want to handle whitespace(enters) for admin/billing notes. having makes scroll slow
 const workspaceColumnData = [
     { field: "resident_id", headerName: "Resident ID", hide: true },
-    { field: "bc_assignee", headerName: "BC", filter: true, sortable: true },
-    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true },
+    { field: "bc_assignee", headerName: "BC", filter: true, sortable: true, width: 150  },
+    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
     { field: "market", headerName: "Market", filter: true, sortable: true },
-    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true},
-    { field: "move_in", headerName: "Move-In Date", 
+    { field: "resident_code", headerName: "Res Acct", filter: true, sortable: true, width: 150 },
+    { field: "move_in", headerName: "Move-In", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -18,8 +40,8 @@ const workspaceColumnData = [
             const dateA = valueA && valueA !== '-' ? new Date(valueA).getTime() : 0;
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
-        }, filter: true, sortable: true },
-    { field: "renewal", headerName: "Renewal Date", 
+        }, filter: true, sortable: true, width: 150 },
+    { field: "renewal", headerName: "Renewal", 
         valueFormatter: params => {
             if (!params.value || params.value === '-') return '-';
             const d = new Date(params.value);
@@ -30,15 +52,30 @@ const workspaceColumnData = [
             const dateA = valueA && valueA !== '-' ? new Date(valueA).getTime() : 0;
             const dateB = valueB && valueB !== '-' ? new Date(valueB).getTime() : 0;
             return dateA - dateB;
-        }, filter: true, sortable: true },
-    { field: "lease_id", headerName: "Lease ID", filter: true, sortable: true},
+        }, filter: true, sortable: true, width: 150 },
+    { field: "lease_id", headerName: "Lease", filter: true, sortable: true, width: 125 },
+    { field: "summ_acc_num", headerName: "Summ Acc", filter: true, sortable: true },
     { field: "admin_notes", headerName:"Admin Notes", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "quick_note", headerName: "Quick Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
-    { field: "billing_note", headerName: "Billing Note", 
-        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}, autoHeight: true },
+        filter: true, sortable: true, cellStyle: { whiteSpace: 'pre-wrap'}},
+    { field: "action_note", headerName: "Action?", sortable: true, width: 125 },
+    { field: "rebill", headerName: "Rebills", cellRenderer: rebillButtonRender, 
+        cellRendererParams: { deferRender: true }, sortable: true },
     { field: "status", headerName: "Status", filter: true, sortable: true },
+    { field: "water", headerName: "W", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "irrigation", headerName: "Irr", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer", headerName: "S", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash", headerName: "T", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric", headerName: "E", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas", headerName: "G", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "stormwater", headerName: "SW", headerClass: "utility-header sw", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "trash5", headerName: "T5", headerClass: "utility-header trash", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "base_basic", headerName: "B", headerClass: "utility-header base", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "water2", headerName: "W2", headerClass: "utility-header water", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "sewer2", headerName: "S2", headerClass: "utility-header sewer", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "electric2", headerName: "E2", headerClass: "utility-header electric", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "gas2_propane", headerName: "G2", headerClass: "utility-header gas", valueFormatter: utilitiesCellFormatting, cellClassRules: utilityClassRules, filter: true, sortable: true, width: 80 },
+    { field: "billing_note", headerName: "Billing Note", filter: true, sortable: true,
+         cellStyle: { whiteSpace: 'pre-wrap'} },
 ];
 const workspaceGridOptions = {
     columnDefs: workspaceColumnData,
@@ -47,68 +84,296 @@ const workspaceGridOptions = {
         mode: 'multiRow',
         headerCheckbox: true,
         checkboxes: true,
-        enableClickSelection: true
+        enableClickSelection: false
     },
     autoSizeStrategy: {
         type: 'fitGridWidth'
     },
-
+    alwaysShowVerticalScroll: true,
+    alwaysShowHorizontalScroll: false,
     pagination: true,
-    paginationPageSize: 10000,
+    paginationPageSize: 500,
     paginationPageSizeSelector: [1000, 2000, 5000, 10000],
-    onRowClicked: event => {
-        if (event.data && event.data.resident_id) {
-            openSidePanel(event.data.resident_id); 
+
+    onFirstDataRendered: params => {
+        params.api.sizeColumnsToFit();
+    },
+    preventDefaultOnContextMenu: true,
+
+    onCellContextMenu: (params) => {
+        workspaceGridApi.deselectAll();
+        params.node.setSelected(true);
+
+        let menu = document.getElementById('workspaceRightClick');
+        if (menu) {
+            menu.style.display = 'block';
+            menu.style.left = params.event.pageX + 'px';
+            menu.style.top = params.event.pageY + 'px';
         }
     }
 };
-function onBtnExportCSV() {
-    gridApi.exportDataAsCsv();
+function rebillButtonRender(params) {
+    if (!params.data || params.data.rebill === null) {
+        return "";
+    }
+    const button = document.createElement('button');
+    button.innerText = 'View Rebill';
+    button.className = 'rebill-button-format';
+    button.style.height = '25px';
+    button.style.fontSize = '11px';
+
+    button.addEventListener('click', () => {
+        checkCurrentRebills(params.data.home_code);
+    });
+    return button
+}
+async function checkCurrentRebills(propCode) {
+    try {
+        const response = await fetch('/workspace/rebills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({home_code: propCode})
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            if (result.rebills.length > 0) {
+                console.log(result.rebills);
+                rebillScreenOn(result.rebills);
+            } else {
+                alert('no rebills');
+            } 
+        } else {
+                alert("error fetching rebills: " + result.error);
+        } 
+    } catch (e) {
+            console.error("fetch error: ", e);
+    }
 }
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector('#workspaceGrid');
-    gridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
+    workspaceGridApi = agGrid.createGrid(gridDiv, workspaceGridOptions);
 
     refreshGridData();
 });
-// end table logic
+// progress report grid
+const progressReportColumnData = [
+    { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
+    { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
+    { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
+    { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
+    { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 }
 
+];
+const progressReportGridOptions = {
+    columnDefs: progressReportColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+    //groupDefaultExpanded: 1,
+    //suppressAggFuncInHeader: true,
+};
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#progressReportGrid');
+    progressGridApi = agGrid.createGrid(gridDiv, progressReportGridOptions);
+
+    fetch('/api/progress_report')
+        .then(res => res.json())
+        .then(data => {
+            progressGridApi.setGridOption('rowData', data);
+        });
+});
+// tracker grid
+const trackerColumnData = [
+    { field: "management_co", headerName: "Management Co", filter: true, sortable: true },
+    { field: "state", headerName: "State", filter: true, sortable: true, width: 150  },
+    { field: "new", headerName: "New", filter: true, sortable: true, width: 150  },
+    { field: "approved", headerName: "Approved", filter: true, sortable: true, width: 150  },
+    { field: "unresolved_rebills", headerName: "Open Rebills", filter: true, sortable: true, width: 150 },
+    { field: "qc_complete", headerName: "QC Complete", filter: true, sortable: true, width: 150  },
+    { field: "mailed", headerName: "Mailed", filter: true, sortable: true, width: 150  },
+    { field: "rebills", headerName: "All Rebills", filter: true, sortable: true, width: 150 } 
+];
+const trackerGridOptions = {
+    columnDefs: trackerColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+    //groupDefaultExpanded: 1,
+    //suppressAggFuncInHeader: true,
+};
+const trackerHistoryColumnData = [
+    { field: "post_month", headerName: "PM", sort: 'desc', sortable: true },
+    { field: "rph", headerName: "R/H", sortable: true },
+    { field: "accuracy", headerName: "Accuracy", sortable: true },
+    { field: "billed", headerName: "Billed", sortable: true },
+    { field: "handbacks", headerName: "Handbacks", sortable: true },
+    { field: "timeliness", headerName: "Timeliness", sorttable: true }
+]
+const trackerHistoryGridOptions = {
+    columnDefs: trackerHistoryColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitGridWidth',
+    },
+    rowHeight: 25,
+}
+const trackerRebillColumnData = [
+    { field: "home_code", headerName: "Prop Code", sort: 'desc', sortable: true },
+    { field: "market", headerName: "Market", sortable: true },
+    { field: "state", headerName: "State", sortable: true },
+    { field: "rebill_note", headerName: "Rebill", sortable: true },
+    { field: "fixed_by", headerName: "Fixed By", sorttable: true}
+]
+const trackerRebillGridOptions = {
+    columnDefs: trackerRebillColumnData,
+    rowData: [],
+    autoSizeStrategy: {
+        type: 'fitCellContents',
+        minWidth: 75
+    },
+    rowHeight: 25,
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const trackerGridDiv = document.querySelector('#trackerGrid');
+    trackerGridApi = agGrid.createGrid(trackerGridDiv, trackerGridOptions);
+
+    const trackerHistoryGridDiv = document.querySelector('#trackerHistoryGrid');
+    trackerHistoryGridApi = agGrid.createGrid(trackerHistoryGridDiv, trackerHistoryGridOptions);
+
+    const trackerRebillGridDiv = document.querySelector('#trackerRebillGrid');
+    trackerRebillGridApi = agGrid.createGrid(trackerRebillGridDiv, trackerRebillGridOptions);
+
+    fetch('/api/tracker')
+        .then(res => res.json())
+        .then(data => {
+            trackerGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/history')
+        .then(res => res.json())
+        .then(data => {
+            trackerHistoryGridApi.setGridOption('rowData', data);
+        });
+    fetch('/api/tracker/rebills')
+        .then(res => res.json())
+        .then(data => {
+            trackerRebillGridApi.setGridOption('rowData', data);
+        });
+});
+// rebill grid
+const rebillCellFormatting = (params) => {
+    if (params.colDef.field === 'handback') {
+        return params.value ? '\u2713' : '';
+    }
+};
+const rebillColumnData = [
+    { field: "post_month", headerName: "Post Month", filter: true, sortable: true, width: 150  },
+    { field: "mgmt_co", headerName: "Management Co", filter: true, sortable: true, width: 150  },
+    { field: "home_code", headerName: "Prop Code", filter: true, sortable: true, width: 150  },
+    { field: "resident_code", headerName: "Resident Code", filter: true, sortable: true, width: 150 },
+    { field: "responsible", headerName: "Billed By", filter: true, sortable: true, width: 150 },
+    { field: "qced_by", headerName: "QCed By", filter: true, sortable: true, width: 150 },
+    { field: "rebill_note", headerName: "Rebill Note", cellStyle: { whiteSpace: 'pre-wrap'}, filter: true, sortable: true, width: 300 },
+    { field: "handback", headerName: "Handback?", cellDataType: 'false', valueFormatter: rebillCellFormatting, filter: true, sortable: true, width: 150  },
+    { field: "fixed_by", headerName: "Fixed By", filter: true, sortable: true, width: 150 },
+];
+const rebillGridOptions = {
+    columnDefs: rebillColumnData,
+    rowData: [],
+    rowSelection: {
+        mode: 'multiRow',
+        headerCheckbox: true,
+        checkboxes: true,
+        enableClickSelection: false
+    },
+    autoSizeStrategy: {
+        type: 'fitCellContents'
+    },
+    embedFullWidthRows: true,
+    pagination: true,
+    paginationPageSize: 1000,
+    paginationPageSizeSelector: [100, 200, 500, 1000]
+};
+document.addEventListener('DOMContentLoaded', () => {
+    const gridDiv = document.querySelector('#rebillGrid');
+    rebillGridApi = agGrid.createGrid(gridDiv, rebillGridOptions);
+
+    fetch('/api/rebill_data')
+        .then(res => res.json())
+        .then(data => {
+            rebillGridApi.setGridOption('rowData', data);
+        });
+});
+function onBtnExportCSV() {
+    workspaceGridApi.exportDataAsCsv();
+}
+// end table logic
+const formatGridDate = (dateVal) => {
+    if (!dateVal || dateVal === "-") return "-";
+    
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "-";
+
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    
+    return `${mm}/${dd}/${yyyy}`;
+};
 function refreshGridData(e) {
     if (e) e.preventDefault();
 
     const market = document.getElementById('market_filter').value;
     const mgmt = document.getElementById('mgmt_filter').value;
     const state = document.getElementById('state_filter').value;
+    const status = document.getElementById('status_filter').value;
     const search = document.getElementById('global-search').value;
 
-    const url = `/api/monthly_records?mgmt=${mgmt}&state=${state}&market=${market}&q=${search}`;
+    const url = `/api/monthly_records?mgmt=${mgmt}&state=${state}&market=${market}&status=${status}&q=${search}`;
 
     fetch(url)
         .then(res => res.json())
         .then(data => {
             console.log("Data received:", data);
-            gridApi.setGridOption('rowData', data);
+            workspaceGridApi.setGridOption('rowData', data);
         })
         .catch(err => console.error("Fetch error:", err));
 }
 async function submitBatchUpdate() {
-    const selectedRows = gridApi.getSelectedRows();
+    const selectedRows = workspaceGridApi.getSelectedRows();
     const resIds = selectedRows.map(row => row.resident_id);
     
     if (resIds.length === 0) {
         alert("No records selected");
         return;
     }
+
+    const utilityUpdates = {};
+    document.querySelectorAll('.update-utility-note').forEach(select => {
+        if (select.value !== "") {
+            utilityUpdates[select.dataset.util] = select.value;
+        }
+    });
     
     const payload = {
         res_id: resIds,
         billed_by: document.getElementById('update-billed-by').value,
+        qced_by: document.getElementById('update-qced-by').value,
         action_note: document.getElementById('update-action-note').value,
         billing_note: document.getElementById('update-billing-note').value,
         append_billing_note: document.getElementById('append-billing-note-checkbox').checked,
-        quick_note: document.getElementById('update-quick-note').value,
-        append_quick_note: document.getElementById('append-quick-note-checkbox').checked,
-        status: document.getElementById('update-status').value
+        status: document.getElementById('update-status').value,
+        fixed_by: document.getElementById('update-fixed-by').value,
+        utility_updates: utilityUpdates,
     };
 
     try {
@@ -117,12 +382,12 @@ async function submitBatchUpdate() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
+        
         if (response.ok) {
             alert("Updated successfully");
             containerOff();
             refreshGridData();
-            console.log(payload);
+            document.getElementById('submission-form').reset();
         } else {
             alert("Error updating");
         }
@@ -132,7 +397,7 @@ async function submitBatchUpdate() {
 }
 window.submitBatchUpdate = submitBatchUpdate;
 function copySelectedToClipboard(btn) {
-    const selectedRows = gridApi.getSelectedRows();
+    const selectedRows = workspaceGridApi.getSelectedRows();
 
     if (selectedRows.length === 0) {
         alert("No items selected");
@@ -151,9 +416,50 @@ function copySelectedToClipboard(btn) {
         fallbackCopyTextToClipboard(finalString, btn);
     });
 }
+function editBillingNoteScreen() {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    if (selectedRows.length === 0) {
+        alert("No items selected");
+        return;
+    }
+    const initialNote = selectedRows[0].billing_note;
+    
+    document.getElementById("editBillingNote").value = initialNote;
+    document.getElementById("note-update-overlay").style.display = "block";
+    document.getElementById("editNoteScreen").style.display = "block";
+}
+async function updateBillingNote() {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const resIds = selectedRows.map(row => row.resident_id);
+    const noteValue = document.getElementById('editBillingNote').value;
+    
+    try {
+        const response = await fetch('/workspace/update_billing_note', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                res_id: resIds,
+                billing_note_update: noteValue
+            })
+        });
+
+        if (response.ok) {
+            alert("Updated successfully")
+            document.getElementById("editNoteScreen").style.display = "none";
+            document.getElementById("note-update-overlay").style.display = "none";
+            refreshGridData();
+        } else {
+            alert("Error updating");
+        }
+
+    } catch (err) {
+        console.error("Error:", err);
+    }
+    workspaceGridApi.deselectAll();
+}
 function debouncedSearch(val) {
-    if (gridApi) {
-        gridApi.setGridOption('quickFilterText', val);
+    if (workspaceGridApi) {
+        workspaceGridApi.setGridOption('quickFilterText', val);
     }
 }
 // not sure if this is needed yet
@@ -199,25 +505,28 @@ window.addEventListener('click', function(e) {
 
 function leaseRulesOn() {
     const leases = {};
-    document.querySelectorAll('.main-row').forEach(row => {
-        const leaseid = row.getAttribute('data-lease-id');
+    workspaceGridApi.forEachNode((node) => {
+        const data = node.data;
+        const leaseid = data.lease_id;
+
         if (leaseid && leaseid !== '-' && !leases[leaseid]) {
             leases[leaseid] = {
-                states: row.getAttribute('data-lease-states'),
-                intro: row.getAttribute('data-lease-intro'),
-                retirement: row.getAttribute('data-lease-retirement'),
-                renewal: row.getAttribute('data-lease-renewal'),
-                requiredUtilities: row.getAttribute('data-lease-required-utilities'),
-                switchableUtilities: row.getAttribute('data-lease-switchable-utilities'),
-                vacantUtilities: row.getAttribute('data-lease-vacant-utilities'),
-                serviceFee: row.getAttribute('data-lease-service-fee'),
-                renewalFee: row.getAttribute('data-lease-renewal-fee'),
-                setupFee: row.getAttribute('data-lease-setup-fee'),
-                moveOutFee: row.getAttribute('data-lease-move-out-fee'),
-                vsf: row.getAttribute('data-lease-vsf'),
-                otherFees: row.getAttribute('data-lease-other-fees'),
-                notes: row.getAttribute('data-lease-notes'),
-                gracePeriod: row.getAttribute('data-lease-grace-period')
+                leaseid: leaseid,
+                states: data.lease_states,
+                intro: formatGridDate(data.lease_intro),
+                retirement: formatGridDate(data.lease_retirement),
+                renewal: formatGridDate(data.lease_renewal),
+                requiredUtilities: data.lease_required_utilities,
+                switchableUtilities: data.lease_switchable_utilities,
+                vacantUtilities: data.lease_vacant_utilities,
+                serviceFee: data.lease_service_fee,
+                renewalFee: data.lease_renewal_fee,
+                setupFee: data.lease_setup_fee,
+                moveOutFee: data.lease_move_out_fee,
+                vsf: data.lease_vsf,
+                otherFees: data.lease_other_fees,
+                notes: data.lease_notes,
+                gracePeriod: data.lease_grace_period
             };
         }
     });
@@ -225,7 +534,7 @@ function leaseRulesOn() {
      const tabContainer = document.getElementById('lease-tabs-container');
     tabContainer.innerHTML = '';
 
-    Object.keys(leases).forEach(leaseid => {
+    Object.keys(leases).sort().forEach(leaseid => {
         const btn = document.createElement('button');
         btn.innerText= leaseid;
         btn.style = "padding: 5px 10px; cursor:pointer; border:1px solid #007bff; background: white; border-radius: 4px;";
@@ -237,13 +546,14 @@ function leaseRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
 
     closeLibraryButtons();
 }
 function showLeaseDetails (leaseid, data) {
     const content = document.getElementById('lease-display-content');
     content.innerHTML = `
-        <h3>Lease ID: ${leaseid}</h3>
+        <h2>Lease ID: ${leaseid}</h2>
         <p><strong>Intro:</strong> ${data.intro || '-'}</p>
         <p><strong>Renewal:</strong> ${data.renewal || '-'}</p>
         <p><strong>Retirement:</strong> ${data.retirement || '-'}</p>
@@ -253,24 +563,26 @@ function showLeaseDetails (leaseid, data) {
         <p><strong>Required U.:</strong> ${data.requiredUtilities || '-'}</p>
         <p><strong>Vacant U.:</strong> ${data.vacantUtilities || '-'}</p>
         <p><strong>Lease Notes:</strong> ${data.notes || '-'}</p>
-        <p><strong>Service Fee:</strong> ${data.serviceFee || '-'}</p>
-        <p><strong>Renewal Fee:</strong> ${data.renewalFee || '-'}</p>
-        <p><strong>Setup Fee:</strong> ${data.setupFee || '-'}</p>
-        <p><strong>VSF:</strong> ${data.vsf || '-'}</p>
-        <p><strong>Move Out Fee:</strong> ${data.moveOutFee || '-'}</p>
-        <p><strong>Other Fees:</strong> ${data.otherFees || '-'}</p>
+        <p><strong>Service Fee:</strong> $${data.serviceFee || '-'}</p>
+        <p><strong>Renewal Fee:</strong> $${data.renewalFee || '-'}</p>
+        <p><strong>Setup Fee:</strong> $${data.setupFee || '-'}</p>
+        <p><strong>VSF:</strong> $${data.vsf || '-'}</p>
+        <p><strong>Move Out Fee:</strong> $${data.moveOutFee || '-'}</p>
+        <p><strong>Other Fees:</strong> $${data.otherFees || '-'}</p>
     `;
     closeLibraryButtons();
 }
 function formSubmissionOn() {
     document.getElementById("form-overlay").style.display = "block";
+    document.getElementById("submission-form").style.display = "block";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function marketRulesOn() {
     const markets = {};
-    gridApi.forEachNode((node) => {
+    workspaceGridApi.forEachNode((node) => {
         const data = node.data;
         const marketName = data.market;
 
@@ -298,6 +610,7 @@ function marketRulesOn() {
     document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     closeLibraryButtons();
 }
 function showMarketDetails (market, data) {
@@ -307,10 +620,41 @@ function showMarketDetails (market, data) {
         <p style="white-space: pre-line;"><strong>Rules:<br></strong> ${data.rules || '-'}</p>
     `;
 }
-function containerOff() {
+function rebillScreenOn(rebills) {
+    const tabContainer = document.getElementById('rebill-screen-expand');
+    let content = `<h3>Rebill</h3>`;
+
+    rebills.forEach(r => {
+        var newTimestamp = new Date(r.timestamp).toLocaleString();
+        content += `
+        <div style="border: 1px solid #8400ff; border-radius: 5px; padding: 10px; margin-bottom: 10px; background: #fcfcfc;">
+            <p style="margin: 5px 0;"><strong>Rebill Note: </strong>${r.note || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Handback?: </strong>${r.handback || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Billed By: </strong>${r.responsible || '-'}</p>
+            <p style="margin: 5px 0;"><strong>QCed By: </strong>${r.qced_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Fixed By: </strong>${r.fixed_by || '-'}</p>
+            <p style="margin: 5px 0;"><strong>Timestamp: </strong>${newTimestamp || '-'}</p>
+        </div>
+        `;
+    });
+    tabContainer.innerHTML = content;
+
+    document.getElementById("rebill-screen-expand").style.display = "block";
+    document.getElementById("close-box-window").style.display = "block";
     document.getElementById("form-overlay").style.display = "none";
     document.getElementById("market-rules-expand").style.display = "none";
     document.getElementById("lease-rules-expand").style.display = "none";
+
+    if (typeof closeLibraryButtons === "function") {
+        closeLibraryButtons();
+    }
+}
+function containerOff() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("submission-form").style.display = "none";
+    document.getElementById("market-rules-expand").style.display = "none";
+    document.getElementById("lease-rules-expand").style.display = "none";
+    document.getElementById("rebill-screen-expand").style.display = "none";
     document.getElementById("close-box-window").style.display = "none";
     closeLibraryButtons();
 }
@@ -319,6 +663,7 @@ function showLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "block";
     document.getElementById("formSubmissionBtn").style.display = "block";
     document.getElementById("close-library-buttons").style.display = "block";
+    document.getElementById("rebillScrnBtn").style.display = "block";
     document.getElementById("libraryBtnClose").style.display = "block";
 }
 function closeLibraryButtons() {
@@ -326,10 +671,18 @@ function closeLibraryButtons() {
     document.getElementById("marketRulesBtn").style.display = "none";
     document.getElementById("formSubmissionBtn").style.display = "none";
     document.getElementById("close-library-buttons").style.display = "none";
+    document.getElementById("rebillScrnBtn").style.display = "none";
     document.getElementById("libraryBtnClose").style.display = "none";
 
 }
-
+function closeOverlays() {
+    document.getElementById("form-overlay").style.display = "none";
+    document.getElementById("submission-form").style.display = "none";
+    document.getElementById("note-update-overlay").style.display = "none";
+    document.getElementById("editNoteScreen").style.display = "none";
+    document.getElementById("add-rebill-overlay").style.display = "none";
+    document.getElementById("addRebillScreen").style.display = "none";
+}
 //maybe unnecessary
     //select all checkbox logic
 function toggleAll(masterCheckbox) {
@@ -360,4 +713,19 @@ function clearSearch() {
     url.searchParams.delete('q');
     url.searchParams.set('page', 1);
     window.location.href = url.href;
+}
+
+function contextMenuCopyHomeCode(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const propCode = selectedRows[0].home_code;
+    navigator.clipboard.writeText(propCode).then(() => {
+        hideMenu();
+    });
+}
+function contextMenuCopyBillingEmail(btn) {
+    const selectedRows = workspaceGridApi.getSelectedRows();
+    const email = selectedRows[0].mgmt_email;
+    navigator.clipboard.writeText(email).then(() => {
+        hideMenu();
+    });
 }

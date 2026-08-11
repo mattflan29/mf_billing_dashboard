@@ -21,16 +21,14 @@ body {
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #ccccff;
-
-    div {
+}
+div {
     margin: 1%;
     margin-top: 0px;
     margin-bottom: 0px;
     padding-top: 0px;
     padding-bottom: 0px;
-    }
 }
-
 .button-format {
     background-color: #007bff; 
     color: white; 
@@ -282,10 +280,54 @@ td {
     }
 }
 
+.workspace-right-click {
+    position: absolute;
+    text-align: center;
+    background: rgb(240, 240, 240);
+    border: 1px solid black;
+    border-radius: 7px;
+    box-shadow: 0px 0px 20px 5px #0000008f;
 
+    ul {
+        padding: 0px;
+        margin: 0px;
+        min-width: 150px;
+        list-style: none;
+        
+        li {
+            padding-bottom: 7px;
+            padding-top: 7px;
+            border-radius: 7px;
+            font-size: 12px;
 
+            &:hover {
+                background-color: rgb(192, 173, 211);
+                cursor: pointer;
+                font-weight: bold;
+            }
+        }
+
+        li.context-separator {
+            height: 1px;
+            width: 75%;
+            background-color: #888;
+            margin: 4px auto;
+            padding: 0;
+            pointer-events: none;
+            border: none;
+        }
+    }
+}
+.import-sections { 
+    display: flex;
+    justify-content: space-around;
+    details {
+        width: 40vw;
+    }
+
+}
 /* Form overlay */
-#form-overlay {
+#form-overlay, #note-update-overlay, #add-rebill-overlay {
     position: fixed;
     display: none;
     width: 100%;
@@ -299,7 +341,7 @@ td {
     margin: 0;
 }
 
-#market-rules-expand, #lease-rules-expand {
+#market-rules-expand, #lease-rules-expand, #rebill-screen-expand {
     display: none;
     position: fixed;
     width: 25%;
@@ -325,17 +367,19 @@ td {
     margin: 0;
 }
 
-#submission-form {
+#submission-form, #editNoteScreen, #addRebillScreen {
+    display: none;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 40%;
-    height: 75%;
+    height: 85%;
     position: absolute;
     background-color: #292944;
     padding: 10px;
     border-radius: 5px;
     color: #9ef0ff;
+    z-index: 500;
 
     label {
         font-weight: bold;
@@ -364,6 +408,8 @@ td {
         cursor: pointer;
         font-weight: bold;
         position: relative;
+        border-style: groove;
+        border-color: black;
     }  
 
     #libraryBtnClose {
@@ -385,26 +431,12 @@ td {
         font-weight: bold;
         height: 7vh;
         width: 7vh;
+        border-style: groove;
+        border-color: black;
 }
 }
 
-#open-lease-rules button, #open-market-rules button {
-    float: right;
-    margin-bottom: 10px;
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    position: relative;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-}
-
-#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn {
+#leaseRulesBtn, #marketRulesBtn, #formSubmissionBtn, #rebillScrnBtn {
     display:none;
 }
 
@@ -437,6 +469,7 @@ input[type="checkbox"] {
     --ag-border-color: #000000 !important;
     --ag-row-hover-color: #5c5c99c2 !important;
     --ag-selected-row-parent-background-color: #000000 !important;
+    --ag-secondary-border-color: rgba(0, 0, 0, 0.5) !important;
 
     .ag-popup-child, .ag-filter-menu {
         background-color: #f3f3ff !important;
@@ -445,14 +478,183 @@ input[type="checkbox"] {
 
 .ag-center-cols-container, .ag-center-cols-container, 
 .ag-unselectable, .ag-ltr .ag-body, .ag-body-viewport, .ag-layout-normal,
-.ag-header-container, .ag-header, .ag-header-row, .ag-row-even, .ag-row-odd, .ag-body-vertical-scroll {
+.ag-header-container, .ag-header, .ag-header-row, .ag-row-even, .ag-row-odd {
     margin: 0;
 }
-
-#workspaceGrid {
+ag-body-viewport.ag-layout-normal.ag-row-animation {
+    margin: 0 !important;
+}
+#workspaceGrid, #progressReportGrid, #rebillGrid {
     height: 75vh;
+}
+#trackerGrid {
+    height: 50vh;
+    width: 70%;
+}
+#trackerHistoryGrid {
+    height: 50vh;
+    width: 27%;
+}
+#tracker-grid-div {
+    margin: 0px;
+    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+#trackerRebillGrid {
+    height: 20vh;
     width: 100%;
 }
 .ag-paging-panel {
     justify-content: flex-start !important;
+}
+.ag-body-vertical-scroll-viewport, .ag-body-vertical-scroll {
+    margin: 0px !important;
+}
+
+.ag-cell-value {
+    display: flex !important;
+    line-height: 15px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    align-items: center !important;
+}
+.ag-cell-value, .ag-header-cell, 
+.ag-cell.ag-cell-not-inline-editing.ag-cell-auto-height {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+}
+.ag-header-cell.ag-column-first {
+    padding-left: 0 !important;
+}
+.ag-header-cell-comp-wrapper  {
+    margin-left: 0 !important;
+    .ag-cell-label-container {
+        margin-left: 0 !important;
+    }
+    .ag-header-cell-label {
+        margin-left: 0 !important;
+    }
+}
+.ag-cell.ag-column-first {
+    margin-left: 10px;
+    margin-right: 10px !important;
+    border-left: 0px !important;
+    padding-right: 8px !important;
+    .ag-cell-wrapper, .ag-selection-checkbox {
+        margin-left: 0 !important;
+  }
+}
+
+.ag-cell.ag-cell-not-inline-editing.ag-cell-normal-height.ag-column-first {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding-left: 0 !important;
+}
+
+#workspaceGrid {
+    .ag-icon {
+     --ag-icon-size: 8px !important;
+    }
+}
+
+.ag-center-cols-viewport, .ag-header-viewport {
+    margin: 0 !important;
+    width: 100% !important;
+}
+.ag-row:hover, .ag-row-selected{
+    .utility-bnv, .utility-cb, .utility-dnb, .utility-false,
+    .utility-true, .utility-nb, .utility-summ, .utility-vac {
+        filter: saturate(1.5) brightness(.7);
+    }
+}
+
+.ag-center-cols-clipper {
+    background-color: transparent !important;
+}
+
+.ag-paging-row-summary-panel {
+    display: block !important;
+}
+
+/* utility column values */
+.utility-col-formatting {
+    border-left-color: rgba(0, 0, 0, 0.5) !important;
+    border-right-color: rgba(0, 0, 0, 0.5) !important;
+    justify-content: center !important;
+}
+.utility-false {
+    background-color: #f5b1b7;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-true {
+    background-color: #b6e9c2;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-nb {
+    background-color: #f0dd75;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-summ {
+    background-color: #95b8d1;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-vac {
+    background-color: #d1d1d1;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-cb {
+    background-color: #f0a6c2;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-bnv {
+    background-color: #f0caa6;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+.utility-dnb {
+    background-color: #f0a6c2;
+    border-right: 1px solid #cccce5 !important;
+    justify-content: center !important;
+}
+/* ag grid utility headers */
+.utility-header {
+    border-radius: 5px;
+}
+.utility-header.water {
+    background-color: #77b8e6;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.sewer {
+    background-color: #9ebd6c;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.trash {
+    background-color: #b09e5e;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.electric {
+    background-color: #cbab3a;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.gas {
+    background-color: #d18f3e;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.base {
+    background-color: #aa95d1;
+    border-right: 1px solid #cccce5 !important;
+}
+.utility-header.sw {
+    background-color: #777ebb;
+    border-right: 1px solid #cccce5 !important;
 }

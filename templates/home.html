@@ -6,8 +6,19 @@
 {% block content %}
 
 <body>
-    <p><strong>calendar</strong></p>
-    <p><strong>priorities</strong></p>
+    <div style="display: flex; justify-content: space-between; gap: 20px; margin: 20px;">
+        <div>
+            <p><strong>priorities</strong></p>
+            <p>deadline A</p>
+            <p>deadline B</p>
+            <p>deadline C</p>
+            <p>deadline D</p>
+        </div>
+        
+        <div>
+            <iframe src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FLos_Angeles&showPrint=0&src=bWZsYW5hZ2FuQGNvbnNlcnZpY2UuY29t&src=ZW4udXNhI2hvbGlkYXlAZ3JvdXAudi5jYWxlbmRhci5nb29nbGUuY29t&src=Y29uc2VydmljZS5jb21fMmQzOTM0MzczNjMwMzkzNzMyMzkzNEByZXNvdXJjZS5jYWxlbmRhci5nb29nbGUuY29t&color=%2300ebe7&color=%230b8043&color=%23616161" style="border:solid 1px #777" width="1000px" height="700px" frameborder="0" scrolling="no"></iframe>
+        </div>
+    </div>
 </body>
 {% endblock %}
 </html>

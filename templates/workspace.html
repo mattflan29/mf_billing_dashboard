@@ -1,10 +1,6 @@
-<!DOCTYPE html>
 {% extends "base.html" %}
 
 {% block content %}
-
-<html>
-
 <div style="display: flex; justify-content: space-between; margin: 1%">
     <div style="display: flex;">
         <div>
@@ -37,6 +33,16 @@
             </select>
         </div>
 
+        <div>
+            <label style="font-size: 12px;">Status:</label>
+            <select id="status_filter" name="status_filter" style="padding: 5px; border-radius: 4px;">
+                <option value="">All Statuses</option>
+                {% for s in status %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <button type="button" onclick="refreshGridData()"
             style="height: 80%; margin: auto; padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
             Filter
@@ -51,6 +57,7 @@
             Copy Selected to Clipboard
         </button>
         <button onclick="onBtnExportCSV()" class="button-format">Export to CSV</button>
+        <button onclick="showAddRebillScreen()" class="button-format">Add Rebill</button>
     </div>
 </div>
 
@@ -58,6 +65,7 @@
 <div id="form-open">
     <button id="libraryBtnExpansion" onclick="showLibraryButtons()">+</button>
     <button id="libraryBtnClose" onclick="closeLibraryButtons()">-</button>
+    <button id="rebillScrnBtn" onclick="rebillScreenOn()">Rebills</button>
     <button id="leaseRulesBtn" onclick="leaseRulesOn()">Lease Rules</button>
     <button id="marketRulesBtn" onclick="marketRulesOn()">Market Rules</button>
     <button id="formSubmissionBtn" onclick="formSubmissionOn()">Open Form</button>
@@ -83,19 +91,55 @@
     </div>
 </div>
 
-<div id="form-overlay">
-    <div id="submission-form">
-        <h2 style="margin-top: 0px;">Updates</h2>
+<div id="rebill-screen-expand">
+    <div>
         <button onclick="containerOff()"
             style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
-        <label>Update Billed By:</label>
-        <select id="update-billed-by">
-            <option value="">-- No Change --</option>
-            {% for b in bc_list %}
-            <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
-            {% endfor %}
-            <option value="null">Unassigned</option>
-        </select>
+        <h2>Rebills</h2>
+        <div id="rebill-view-container" style="display: flex; flex-wrap: wrap;"></div>
+        <div id="rebill-display-content"></div>
+    </div>
+</div>
+
+<div>
+    <div id="form-overlay" onclick="closeOverlays()"></div>
+    <form id="submission-form">
+        <h2 style="margin-top: 0px;">Updates</hs2>
+        <button type="button" onclick="containerOff()"
+            style="font-size: 20px; position: absolute; top: 0; right: 0; cursor: pointer; border-radius: 5px;">X</button>
+
+        <div style="display: flex; flex-direction: row; justify-content: space-evenly; align-items: baseline;">
+            
+            <div>
+                <label>Update Billed By:</label>
+                <select id="update-billed-by">
+                    <option value="">--</option>
+                    <option value="unassigned">Unassigned</option>
+                    {% for b in bc_list %}
+                    <option value="{{ b.employee_id }}">{{ b.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Update QCed By:</label>
+                <select id="update-qced-by">
+                    <option value="">--</option>
+                    {% for q in qc_list %}
+                    <option value="{{ q.employee_id }}">{{ q.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="">Update Fixed By:</label>
+                <select id="update-fixed-by">
+                    <option value="">--</option>
+                    {% for f in fixed_list %}
+                    <option value="{{ f.employee_id }}">{{ f.nickname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
 
         <label>Action Note?</label>
         <select id="update-action-note">
@@ -104,6 +148,26 @@
             <option value="false">No</option>
         </select>
 
+        <label>Utility Update</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px;">
+                {% for key, label in [('water','Water'), ('sewer','Sewer'), ('trash','Trash'), ('electric','Electric'), ('gas','Gas'), ('stormwater','Stormwater'), ('trash5','Trash5'), ('base_basic','Base'), ('water2','Water2'), ('sewer2','Sewer2'), ('electric2','Electric2'), ('gas2','Gas2')] %}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 2px;">
+                    <span style="font-size: 12px;">{{ label }}:</span>
+                    <select class="update-utility-note" data-util="{{ key }}" style="font-size: 11px;">
+                        <option value="">--</option>
+                        <option value="0">False</option>
+                        <option value="1">True</option>
+                        <option value="2">Not Billing</option>
+                        <option value="3">Summary</option>
+                        <option value="4">Vacant</option>
+                        <option value="5">Copy Bill</option>
+                        <option value="6">Bundled/No VSF</option>
+                        <option value="7">DO NOT BILL</option>
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+
         <label>Billing Note:</label>
         <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
             <input type="checkbox" id="append-billing-note-checkbox">
@@ -111,14 +175,6 @@
                 replace)</label>
         </div>
         <textarea id="update-billing-note" style="width: 99%; height: 50px;"></textarea>
-
-        <label for="">Quick Note:</label>
-        <div style="margin: 5px; font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="append-quick-note-checkbox">
-            <label for="append-quick-note" style="padding: 0px 0px 0px 3px;">Add to existing note (don't
-                replace)</label>
-        </div>
-        <textarea id="update-quick-note" style="width: 99%; height: 50px;"></textarea>
 
         <label>Status:</label>
         <select id="update-status">
@@ -139,18 +195,86 @@
         </select>
         <button type="button" onclick="submitBatchUpdate()"
             style="position:absolute; bottom: 5px; right: 5px; border-radius: 5px; cursor: pointer;">Submit</button>
-    </div>
+    </form>
 </div>
 
-<div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0;"></div>
+<div id="workspaceGrid" class="ag-theme-quartz-dark" style="margin: 0%; padding: 0%;"></div>
 
 <div id="close-box-window" onclick="containerOff()"></div>
 <div id="close-library-buttons" onclick="closeLibraryButtons()"></div>
 
+<div id="workspaceRightClick" class="workspace-right-click" style="display: none;">
+    <ul>
+        <li>NOT WORKING</li> <!--todo: link to actual scripts. or attempt sto use the ag-grid context menu-->
+        <li onclick="contextMenuCopyHomeCode()">Copy Home Code</li>
+        <li onclick="contextMenuCopyBillingEmail()">Copy Billing Email</li>
+        <li class="context-separator"></li>
+        <li onclick="editBillingNoteScreen()">Edit Note</li>
+        <li class="context-separator"></li>
+        <li>Open Library</li>
+        <li class="context-separator"></li>
+        <li>Search by Home Code(?)</li>
+    </ul>
+</div>
+
+<div>
+    <!--TODO: NEEDS WORK - formatting still ends up being funky and need initials added somewhere-->
+    <form id="editNoteScreen" style="display: none;">
+        <h2>Edit Billing Note</h2>
+        <textarea id="editBillingNote" style="width: 99%; height: 50px;"></textarea>
+        <button type="button" id="editBillingNoteSubmission" onclick="updateBillingNote()">Submit</button>
+        <h2>CANNOT MASS EDIT NOTES - ONLY ADD LINES OR DELETE</h2>
+    </form>
+    <div id="note-update-overlay" onclick="closeOverlays()"></div>
+</div>
+
+<div>
+    <div id="addRebillScreen" style="display: none;">
+        <h2>Add Rebill</h2>
+        <textarea id="addRebillNote" style="width: 99%; height: 50px;"></textarea>
+
+        <div name="import">
+        <summary id="leadership-tools"><strong>Import Rebills</strong></summary>
+        <div style="padding: 10px; margin-top: 5px;">
+            <form action="/workspace/import_rebills" method="POST" enctype="multipart/form-data">
+                <label>Upload File:</label>
+                <a href="{{ url_for('static', filename='Import_CSV_Templates/Rebills_CSV_TEMPLATE.csv') }}" 
+                    download="Rebills.csv" 
+                    style="margin-right: 50px; font-size: 14px;">
+                    Download Template File</a>
+                <input type="file" name="file" accept=".csv, .xlsx" required>
+                <button type="submit" style="margin-top: 5px;">Import Rebills</button>
+            </form>
+        </div>
+    </div>
+    </div>
+    <div id="add-rebill-overlay" onclick="closeOverlays()"></div>
+
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/table-logic.js') }}"></script>
+<script>
+    document.addEventListener('click', function () {
+     const menu = document.getElementById('workspaceRightClick');
+     if (menu.style.display === 'block') {
+        hideMenu();
+     }});
+
+    function hideMenu() {
+    const menu = document.getElementById('workspaceRightClick');
+    if (menu) {
+        menu.style.display = 'none';
+        }
+    }
+
+    function showAddRebillScreen() {
+        document.getElementById("addRebillScreen").style.display = "block";
+        document.getElementById("add-rebill-overlay").style.display = "block";
+    }
+</script>
+
 {% endblock %}
 
 </html>
